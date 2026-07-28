@@ -1,6 +1,16 @@
 declare module 'jest-axe' {
   import { ReactElement } from 'react';
 
+  interface AxeNode {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: any;
+  }
+
+  interface AxeResult {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: any;
+  }
+
   export interface AxeResults {
     violations: Array<{
       id: string;
@@ -9,17 +19,17 @@ declare module 'jest-axe' {
       description: string;
       help: string;
       helpUrl: string;
-      nodes: any[];
+      nodes: AxeNode[];
     }>;
-    passes: any[];
-    incomplete: any[];
-    inapplicable: any[];
+    passes: AxeResult[];
+    incomplete: AxeResult[];
+    inapplicable: AxeResult[];
   }
 
   export function axe(element: Element | ReactElement): Promise<AxeResults>;
 
   export const toHaveNoViolations: {
-    toHaveNoViolations(this: any, results: AxeResults): { pass: boolean; message(): string };
+    toHaveNoViolations(this: { currentTestName?: string }, results: AxeResults): { pass: boolean; message(): string };
   };
 }
 
