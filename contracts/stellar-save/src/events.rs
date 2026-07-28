@@ -204,6 +204,35 @@ pub struct GroupUnpaused {
     pub unpaused_at: u64,
 }
 
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GroupDissolved {
+    pub group_id: u64,
+    pub dissolved_at: u64,
+    pub total_refunded: i128,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CycleDeadlineExtended {
+    pub group_id: u64,
+    pub cycle: u32,
+    pub extension_seconds: u64,
+    pub new_deadline: u64,
+    pub extended_by: Address,
+    pub extended_at: u64,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GroupCloned {
+    pub original_group_id: u64,
+    pub new_group_id: u64,
+    pub creator: Address,
+    pub cloned_at: u64,
+}
+
+
 /// Event emitted when a cycle advances to the next cycle.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -213,10 +242,6 @@ pub struct CycleAdvanced {
     pub new_cycle: u32,
     pub payout_executed: bool,
     pub defaulted: bool,
-    pub advanced_at: u64,
-}
-
-    pub new_cycle: u32,
     pub advanced_at: u64,
 }
 
@@ -617,6 +642,11 @@ impl EventEmitter {
             new_cycle,
             payout_executed,
             defaulted,
+            advanced_at,
+        };
+        env.events().publish(("cycle_advanced",), event);
+    }
+
     pub fn emit_contribution_verified(
         env: &Env,
         group_id: u64,
@@ -804,14 +834,6 @@ impl EventEmitter {
         env.events().publish(("groups_merged",), event);
     }
 
-    pub fn emit_cycle_advanced(env: &Env, group_id: u64, new_cycle: u32, advanced_at: u64) {
-        let event = CycleAdvanced {
-            group_id,
-            new_cycle,
-            advanced_at,
-        };
-        env.events().publish(("cycle_advanced",), event);
-    }
 
     pub fn emit_reward_claimed(
         env: &Env,
@@ -961,6 +983,35 @@ impl EventEmitter {
             referred_at,
         };
         env.events().publish(("member_referred",), event);
+    }
+
+    pub fn emit_dispute_raised(
+        env: &Env,
+        group_id: u64,
+        raised_by: Address,
+        reason: String,
+        vote_count: u32,
+        threshold: u32,
+        auto_paused: bool,
+        raised_at: u64,
+    ) {
+        env.events().publish(
+            ("dispute_raised",),
+            (group_id, raised_by, reason, vote_count, threshold, auto_paused, raised_at),
+        );
+    }
+
+    pub fn emit_dispute_resolved(
+        env: &Env,
+        group_id: u64,
+        resolved_by: Address,
+        resolution: String,
+        resolved_at: u64,
+    ) {
+        env.events().publish(
+            ("dispute_resolved",),
+            (group_id, resolved_by, resolution, resolved_at),
+        );
     }
 }
 
@@ -1223,6 +1274,9 @@ mod tests {
         let env = Env::default();
 
         EventEmitter::emit_cycle_advanced(&env, 1, 0, 1, true, false, 1234567890);
+    }
+
+    #[test]
     fn test_group_paused_event() {
         let env = Env::default();
         let creator = Address::generate(&env);
