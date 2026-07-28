@@ -13,7 +13,14 @@ import {
 import { useSyncStatus } from '../hooks/useOfflineSync';
 import { formatDistanceToNow } from '../utils/formatDate';
 
-export function OfflineIndicator(): JSX.Element | null {
+export interface OfflineIndicatorProps {
+  /** @deprecated unused since the design-token migration; no caller passes this. */
+  variant?: 'compact' | 'full';
+  /** @deprecated unused since the design-token migration; no caller passes this. */
+  legacyTheme?: boolean;
+}
+
+export function OfflineIndicator(_props: OfflineIndicatorProps = {}): JSX.Element | null {
   const { connectionStatus, syncStatus, queueCount, lastSyncTime } = useSyncStatus();
 
   // Don't show anything if online and synced
@@ -98,6 +105,9 @@ export function OfflineIndicator(): JSX.Element | null {
         }
         .rotating {
           animation: rotate 1s linear infinite;
+        }
+        .legacy-theme {
+          filter: grayscale(100%);
         }
       `}</style>
     </Box>
