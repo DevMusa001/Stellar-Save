@@ -7,7 +7,8 @@
  * - Payout rotation timeline with past and future recipients
  * - Contribution flow for active members
  */
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Stack,
   Typography,
@@ -39,8 +40,11 @@ import { Button } from '../components/Button';
 import { ContributionFlow } from '../components/ContributionFlow';
 import { InsurancePanel } from '../components/InsurancePanel';
 import { GroupReportExportButton } from '../components/GroupReportExportButton';
+import { ErrorBoundary } from '../components/ErrorBoundary/ErrorBoundary';
 import { useNavigation } from '../routing/useNavigation';
 import { useWallet } from '../hooks/useWallet';
+import { useGroup } from '../hooks/useGroup';
+import { queryKeys } from '../lib/queryKeys';
 import type { DetailedGroup, GroupMember } from '../utils/groupApi';
 import type { PayoutEntry } from '../types/contribution';
 
@@ -53,45 +57,6 @@ interface MemberCycleStatus {
   cycleStatuses: Record<number, 'paid' | 'unpaid' | 'pending'>;
   totalContributions: number;
   isActive: boolean;
-}
-
-// ── Mock data ─────────────────────────────────────────────────────────────────
-
-function buildMockGroup(groupId: string): DetailedGroup {
-  const now = new Date();
-  const members: GroupMember[] = [
-    { id: '1', address: 'GABC1234567890ABCDEF', name: 'Alice', joinedAt: new Date('2026-01-10'), totalContributions: 750, isActive: true },
-    { id: '2', address: 'GDEF0987654321FEDCBA', name: 'Bob', joinedAt: new Date('2026-01-12'), totalContributions: 500, isActive: true },
-    { id: '3', address: 'GXYZ1111222233334444', name: 'Carol', joinedAt: new Date('2026-01-15'), totalContributions: 250, isActive: true },
-    { id: '4', address: 'GAAA5555666677778888', name: 'Dave', joinedAt: new Date('2026-02-01'), totalContributions: 250, isActive: false },
-  ];
-
-  return {
-    id: groupId,
-    name: 'Community Savings Circle',
-    description: 'A rotating savings group for community members to pool resources and support each other financially.',
-    memberCount: members.length,
-    contributionAmount: 250,
-    currency: 'XLM',
-    status: 'active',
-    createdAt: new Date('2026-01-01'),
-    totalMembers: members.length,
-    targetAmount: 4000,
-    currentAmount: 1750,
-    contributionFrequency: 'monthly',
-    members,
-    contributions: [
-      { id: 'c1', memberId: '1', memberName: 'Alice', amount: 250, timestamp: new Date(now.getTime() - 86400000 * 2), transactionHash: 'tx_abc123', status: 'completed' },
-      { id: 'c2', memberId: '2', memberName: 'Bob', amount: 250, timestamp: new Date(now.getTime() - 86400000 * 3), transactionHash: 'tx_def456', status: 'completed' },
-      { id: 'c3', memberId: '3', memberName: 'Carol', amount: 250, timestamp: new Date(now.getTime() - 86400000 * 5), transactionHash: 'tx_ghi789', status: 'completed' },
-      { id: 'c4', memberId: '4', memberName: 'Dave', amount: 250, timestamp: new Date(now.getTime() - 86400000 * 7), transactionHash: 'tx_jkl012', status: 'pending' },
-    ],
-    cycles: [
-      { cycleNumber: 1, startDate: new Date('2026-01-01'), endDate: new Date('2026-01-31'), targetAmount: 1000, currentAmount: 1000, status: 'completed' },
-      { cycleNumber: 2, startDate: new Date('2026-02-01'), endDate: new Date('2026-02-28'), targetAmount: 1000, currentAmount: 750, status: 'active' },
-    ],
-    currentCycle: { cycleNumber: 2, startDate: new Date('2026-02-01'), endDate: new Date('2026-02-28'), targetAmount: 1000, currentAmount: 750, status: 'active' },
-  };
 }
 
 /** Build per-member contribution status for each cycle */
@@ -312,41 +277,36 @@ export default function GroupDetailPage() {
 function GroupDetailContent() {
   const { params } = useNavigation();
   const { activeAddress } = useWallet();
+  const queryClient = useQueryClient();
   const groupId = params.groupId ?? 'demo-group';
 
-  const [group, setGroup] = useState<DetailedGroup | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Single source of truth for group detail data — shared React Query cache
+  // (queryKeys.groups.detail) also populated by GroupCard's hover-prefetch,
+  // so navigating here after hovering a GroupCard reuses that cache entry
+  // instead of firing a second network request.
+  const { group, isLoading, error, refresh } = useGroup(groupId);
+
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [managedMember, setManagedMember] = useState<GroupMember | null>(null);
   const [memberDialogOpen, setMemberDialogOpen] = useState(false);
-
-  const loadGroup = () => {
-    setLoading(true);
-    setError(null);
-    setTimeout(() => {
-      try {
-        setGroup(buildMockGroup(groupId));
-      } catch {
-        setError('Failed to load group details');
-      } finally {
-        setLoading(false);
-      }
-    }, 600);
-  };
-
-  useEffect(() => { loadGroup(); }, [groupId]);
 
   const isMember = group?.members.some((m) => m.address === activeAddress);
   const canContribute = isMember && group?.status === 'active' && group?.currentCycle?.status === 'active';
 
   const handleRemoveMember = (memberId: string) => {
-    setGroup((prev) => prev ? { ...prev, members: prev.members.filter((m) => m.id !== memberId) } : prev);
+    // Optimistically update the shared cache so every consumer of this
+    // group's detail query (this page, GroupCard, etc.) reflects the
+    // removal immediately, without a full refetch.
+    queryClient.setQueryData<DetailedGroup | null>(
+      queryKeys.groups.detail(groupId),
+      (prev) => (prev ? { ...prev, members: prev.members.filter((m) => m.id !== memberId) } : prev),
+    );
     setSuccessMessage('Member removed successfully.');
     setTimeout(() => setSuccessMessage(null), 4000);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <AppLayout title="Group Details" subtitle="Loading..." footerText="Stellar Save">
         <AppCard><LinearProgress /></AppCard>
@@ -361,7 +321,7 @@ function GroupDetailContent() {
           <Stack spacing={2}>
             <Typography variant="h2" color="error">{error ?? 'Group not found'}</Typography>
             <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button onClick={loadGroup} variant="primary">Try Again</Button>
+              <Button onClick={refresh} variant="primary">Try Again</Button>
               <Button onClick={() => window.history.back()} variant="secondary">Go Back</Button>
             </Box>
           </Stack>
@@ -382,6 +342,7 @@ function GroupDetailContent() {
     >
       <Stack spacing={3}>
         {successMessage && <Alert severity="success">{successMessage}</Alert>}
+        {actionError && <Alert severity="error" onClose={() => setActionError(null)}>{actionError}</Alert>}
 
         {/* Group Overview */}
         <AppCard>
@@ -432,8 +393,14 @@ function GroupDetailContent() {
                   defaultAmount={group.contributionAmount}
                   cycleId={group.currentCycle?.cycleNumber ?? 0}
                   walletAddress={activeAddress ?? undefined}
-                  onSuccess={(txHash, amount) => setSuccessMessage(`Contributed ${amount} XLM! TX: ${txHash}`)}
-                  onError={(err) => setError(err.message)}
+                  onSuccess={(txHash, amount) => {
+                    setSuccessMessage(`Contributed ${amount} XLM! TX: ${txHash}`);
+                    // Invalidate the shared group-detail cache so the
+                    // updated currentAmount/contributions are refetched
+                    // everywhere this group is displayed.
+                    void queryClient.invalidateQueries({ queryKey: queryKeys.groups.detail(groupId) });
+                  }}
+                  onError={(err) => setActionError(err.message)}
                 />
               )}
             </Box>
