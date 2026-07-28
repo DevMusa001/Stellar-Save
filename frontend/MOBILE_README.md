@@ -2,6 +2,8 @@
 
 Native iOS and Android applications built with Capacitor, wrapping the Stellar Save web application.
 
+**Last verified:** July 28, 2026
+
 ## Quick Start
 
 ### Prerequisites
@@ -81,7 +83,7 @@ Automated builds and distribution are handled by GitHub Actions:
 - **mobile.yml**: CI on every PR (lint, test, build)
 - **mobile-release.yml**: Manual release to TestFlight and Play Console
 
-See [docs/mobile-cicd-setup.md](../docs/mobile-cicd-setup.md) for complete setup guide.
+See [docs/mobile-cicd-setup.md](../../docs/mobile-cicd-setup.md) for complete setup guide.
 
 ## Configuration
 
@@ -217,7 +219,7 @@ Before submitting a PR:
 
 ### Known Issues
 
-See `ACCESSIBILITY.md` in the project root for the full list of known accessibility issues and their status.
+See [`ACCESSIBILITY.md`](../../ACCESSIBILITY.md) in the project root for the full list of known accessibility issues and their status.
 
 ### Resources
 
