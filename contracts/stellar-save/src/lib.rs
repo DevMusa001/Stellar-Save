@@ -18,6 +18,7 @@ pub mod deadline;
 pub mod error;
 pub mod errors;
 pub mod events;
+pub mod governance;
 pub mod group;
 pub mod helpers;
 pub mod migration;
