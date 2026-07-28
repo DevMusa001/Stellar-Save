@@ -49,7 +49,7 @@ mod multi_token_tests;
 mod mutation_tests;
 mod upgrade_tests;
 mod chaos_tests;
-mod fuzz_tests;
+pub mod fuzz_tests;
 mod property_tests;
 #[cfg(test)]
 mod escrow_property_tests;
