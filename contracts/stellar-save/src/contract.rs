@@ -3094,10 +3094,8 @@ impl StellarSaveContract {
     /// 2. Create a token client for the native asset
     /// 3. Query the balance for this contract's address
     pub fn get_contract_balance(_env: Env) -> i128 {
-        // Placeholder: Return 0
-        // In production, query the native token contract:
-        // let native_token = token::Client::new(&env, &native_token_address);
-        // native_token.balance(&env.current_contract_address())
+        // Placeholder: returns 0 until a token contract address is provided.
+        // See token.rs for the token::Client helper that will power this.
         0
     }
 
