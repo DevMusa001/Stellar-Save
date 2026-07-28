@@ -50,11 +50,12 @@ use soroban_sdk::{Address, Env};
 /// Validates Requirements 1.1, 1.2, 1.3, 1.4, 1.5
 fn validate_cycle_complete(
     env: &Env,
-    group_id: u64,
+    group: &Group,
     current_cycle: u32,
 ) -> Result<crate::pool::PoolInfo, StellarSaveError> {
-    // Call PoolCalculator to retrieve comprehensive cycle data
-    let pool_info = PoolCalculator::get_pool_info(env, group_id, current_cycle)?;
+    // Reuse the already-loaded group instead of re-reading it from storage,
+    // avoiding a redundant SLOAD of the group_data entry within this invocation.
+    let pool_info = PoolCalculator::get_pool_info_for_group(env, group, current_cycle)?;
 
     // Validate that the pool is ready for payout
     // This checks:
@@ -819,7 +820,7 @@ pub fn execute_payout(env: Env, group_id: u64) -> Result<(), StellarSaveError> {
     // All validation checks must pass before any state modifications occur
 
     // Step 4: Validate cycle is complete (all members have contributed)
-    let pool_info = validate_cycle_complete(&env, group_id, current_cycle)?;
+    let pool_info = validate_cycle_complete(&env, &group, current_cycle)?;
 
     // Step 4b: Apply penalties to members who missed contributions this cycle.
     // Penalties are added to the pool total so the payout recipient benefits.
