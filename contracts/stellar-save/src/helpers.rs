@@ -434,6 +434,48 @@ mod tests {
         assert_eq!(result, Ok(max_members - 1));
     }
 
+    #[test]
+    fn test_calculate_current_cycle_clock_skew_returns_zero() {
+        // Guard: if current_time < started_at (e.g. due to clock skew) → Ok(0), no panic.
+        let env = Env::default();
+        let started_at: u64 = 5000;
+        let cycle_duration: u64 = 604800;
+
+        let creator = Address::generate(&env);
+        let mut group = Group::new(1, creator, 1_000_000, cycle_duration, 5, 2, started_at, 0);
+        group.member_count = 2;
+        group.activate(started_at);
+        store_group(&env, &group);
+
+        // Set ledger time to before started_at
+        env.ledger().set_timestamp(started_at - 1);
+        let result = calculate_current_cycle(&env, 1);
+        assert_eq!(result, Ok(0));
+    }
+
+    #[test]
+    fn test_calculate_current_cycle_exactly_one_second_before_first_boundary() {
+        // Boundary: exactly (cycle_duration - 1) seconds elapsed → still cycle 0
+        let env = Env::default();
+        let started_at: u64 = 1000;
+        let cycle_duration: u64 = 86400; // 1 day
+
+        let creator = Address::generate(&env);
+        let mut group = Group::new(1, creator, 1_000_000, cycle_duration, 5, 2, started_at, 0);
+        group.member_count = 2;
+        group.activate(started_at);
+        store_group(&env, &group);
+
+        env.ledger().set_timestamp(started_at + cycle_duration - 1);
+        let result = calculate_current_cycle(&env, 1);
+        assert_eq!(result, Ok(0));
+
+        // Exactly at the boundary → cycle 1
+        env.ledger().set_timestamp(started_at + cycle_duration);
+        let result = calculate_current_cycle(&env, 1);
+        assert_eq!(result, Ok(1));
+    }
+
     // --- round_contribution_amount tests ---
 
     #[test]

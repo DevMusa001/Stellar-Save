@@ -24,6 +24,22 @@ pub struct StellarSaveContract;
 
 #[contractimpl]
 impl StellarSaveContract {
+    /// Returns the current ledger timestamp as Unix epoch seconds.
+    ///
+    /// This is the canonical time source for all time-dependent logic in the
+    /// contract. It performs no storage reads or writes, does not check
+    /// authorization, and does not inspect pause state.
+    ///
+    /// Internal callers that currently call `env.ledger().timestamp()` inline
+    /// may delegate to this function to make the time source explicit and
+    /// auditable in one place.
+    ///
+    /// # Returns
+    /// The current ledger timestamp as `u64` (Unix epoch seconds).
+    pub fn get_current_timestamp(env: Env) -> u64 {
+        env.ledger().timestamp()
+    }
+
     /// Validates that a contribution amount matches the group's required contribution amount.
     ///
     /// This helper function ensures that members contribute the exact amount specified
