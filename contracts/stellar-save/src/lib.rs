@@ -39,6 +39,7 @@ pub mod types;
 
 // mod auto_contribution_tests;
 pub mod gas_benchmark;
+pub mod test_utils;
 // mod invitation_tests;
 // mod merge_tests;
 // mod migration_matrix_tests;
