@@ -21,15 +21,11 @@ const AppDownloadPage: React.FC = () => {
     const attemptDeepLink = () => {
       // Try to open the app with custom scheme
       const deepLinkUrl = `stellarsave://join/${inviteCode}`;
-      const timeout = setTimeout(() => {
-        // If still on this page after 2 seconds, app probably isn't installed
-        console.log('App not detected, showing download options');
-      }, 2000);
+      // If still on this page after 2 seconds, app probably isn't installed
+      setTimeout(() => {}, 2000);
 
       // Attempt to open deep link
       window.location.href = deepLinkUrl;
-
-      return () => clearTimeout(timeout);
     };
 
     // Small delay to let the page render first

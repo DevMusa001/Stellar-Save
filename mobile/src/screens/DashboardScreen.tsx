@@ -9,6 +9,7 @@ import { StyleSheet, Text, View, TouchableOpacity, ScrollView, RefreshControl } 
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
+import { formatStroops } from '@stellar-save/sdk';
 import { useBalance } from '../hooks/useBalance';
 import { useGroups } from '../hooks/useGroups';
 import type { RootStackParamList } from '../navigation';
@@ -107,7 +108,7 @@ export function DashboardScreen() {
             <View key={g.id} style={styles.groupRow}>
               <Text style={styles.groupName}>{g.name ?? `Group #${g.id}`}</Text>
               <Text style={styles.groupDetail}>
-                {(g.contributionAmount / 1e7).toFixed(2)} XLM · {g.memberCount}/{g.maxMembers} members
+                {formatStroops(g.contributionAmount, { decimals: 2 })} · {g.memberCount}/{g.maxMembers} members
               </Text>
             </View>
           ))}

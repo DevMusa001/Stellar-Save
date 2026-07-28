@@ -48,7 +48,7 @@ export class AdminService {
     return this.auditLogs;
   }
 
-  private logAction(adminId: string, action: string, targetId?: string, targetType?: string, metadata?: any) {
+  logAction(adminId: string, action: string, targetId?: string, targetType?: string, metadata?: any) {
     const log: AuditLog = {
       id: `log_${Date.now()}`,
       userId: adminId,

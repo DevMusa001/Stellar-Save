@@ -22,11 +22,9 @@ import { getSyncQueueCount } from '../lib/db';
  */
 export function useOfflineSyncInit(): void {
   useEffect(() => {
-    console.log('[useOfflineSync] Initializing sync service');
     void initSyncService();
 
     return () => {
-      console.log('[useOfflineSync] Stopping sync service');
       stopSyncService();
     };
   }, []);

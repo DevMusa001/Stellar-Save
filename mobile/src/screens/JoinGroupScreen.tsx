@@ -26,6 +26,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 
+import { formatStroops } from '@stellar-save/sdk';
 import { joinGroup, getGroup, ContractError, type Group } from '../services/contractService';
 import { useAuthGate } from '../auth/AuthGate';
 import type { RootStackParamList } from '../navigation';
@@ -49,7 +50,7 @@ function parseInviteLink(input: string): string | null {
 // ─── Group preview ────────────────────────────────────────────────────────────
 
 function GroupPreview({ group }: { group: Group }) {
-  const xlmAmount = (group.contributionAmount / 1e7).toFixed(2);
+  const xlmAmount = formatStroops(group.contributionAmount, { decimals: 2 });
   const cycleDays = Math.round(group.cycleDuration / 86400);
 
   return (
@@ -58,7 +59,7 @@ function GroupPreview({ group }: { group: Group }) {
       <View style={styles.previewRow}>
         <View style={styles.previewStat}>
           <Text style={styles.previewLabel}>Contribution</Text>
-          <Text style={styles.previewValue}>{xlmAmount} XLM</Text>
+          <Text style={styles.previewValue}>{xlmAmount}</Text>
         </View>
         <View style={styles.previewStat}>
           <Text style={styles.previewLabel}>Cycle</Text>

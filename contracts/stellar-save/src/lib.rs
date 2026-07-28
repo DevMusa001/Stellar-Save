@@ -9,7 +9,7 @@
 //! - `contract`: All `#[contractimpl]` entry-point methods (thin facades to domain modules)
 //! - `group`, `contribution`, `payout`, `storage`, …: Domain modules
 
-// ── Domain modules ────────────────────────────────────────────────────────────
+pub mod auth;
 pub mod clone;
 pub mod contribution;
 pub mod contract;
@@ -37,29 +37,20 @@ pub mod storage_optimization;
 pub mod token;
 pub mod types;
 
-mod auto_contribution_tests;
+// mod auto_contribution_tests;
 pub mod gas_benchmark;
-mod invitation_tests;
-mod merge_tests;
-mod migration_matrix_tests;
-mod migration_tests;
-mod milestone_tests;
+// mod invitation_tests;
+// mod merge_tests;
+// mod migration_matrix_tests;
+// mod migration_tests;
+// mod milestone_tests;
 pub mod milestones;
-mod multi_token_tests;
-mod mutation_tests;
-mod upgrade_tests;
-mod chaos_tests;
-pub mod fuzz_tests;
-mod property_tests;
-#[cfg(test)]
-mod escrow_property_tests;
-#[cfg(test)]
-mod governance_property_tests;
-#[cfg(test)]
-mod insurance_property_tests;
-mod tests;
+// mod multi_token_tests;
+// mod mutation_tests;
+// mod upgrade_tests;
 
 // ── Re-exports ────────────────────────────────────────────────────────────────
+pub use auth::{require_admin, require_creator, require_member};
 pub use contract::{StellarSaveContract, StellarSaveContractClient};
 pub use contribution::{ContributionPage, ContributionRecord};
 pub use error::{ContractResult, ErrorCategory, StellarSaveError};

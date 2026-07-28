@@ -78,7 +78,6 @@ export function stopSyncService(): void {
 // ─── Connection Status Handlers ───────────────────────────────────────────────
 
 async function handleOnline(): Promise<void> {
-  console.log('[SyncService] Connection restored');
   await updateSyncMetadata({ isOnline: true });
   notifyConnectionStatus('online');
   
@@ -90,7 +89,6 @@ async function handleOnline(): Promise<void> {
 }
 
 async function handleOffline(): Promise<void> {
-  console.log('[SyncService] Connection lost');
   await updateSyncMetadata({ isOnline: false });
   notifyConnectionStatus('offline');
   
@@ -103,7 +101,6 @@ async function handleOffline(): Promise<void> {
 
 async function handleVisibilityChange(): Promise<void> {
   if (document.visibilityState === 'visible' && navigator.onLine) {
-    console.log('[SyncService] App came to foreground, syncing...');
     void syncAll();
   }
 }
@@ -134,12 +131,10 @@ function stopPeriodicSync(): void {
  */
 export async function syncAll(): Promise<void> {
   if (isCurrentlySyncing) {
-    console.log('[SyncService] Sync already in progress, skipping');
     return;
   }
 
   if (!navigator.onLine) {
-    console.log('[SyncService] Offline, skipping sync');
     return;
   }
 
@@ -157,9 +152,7 @@ export async function syncAll(): Promise<void> {
     await updateSyncMetadata({ lastSync: new Date(), isOnline: true });
 
     notifySyncStatus('idle');
-    console.log('[SyncService] Sync completed successfully');
   } catch (error) {
-    console.error('[SyncService] Sync failed:', error);
     notifySyncStatus('error');
   } finally {
     isCurrentlySyncing = false;
@@ -171,22 +164,17 @@ export async function syncAll(): Promise<void> {
  */
 async function replayQueue(): Promise<void> {
   const queue = await getPendingSyncItems();
-  
+
   if (queue.length === 0) {
-    console.log('[SyncService] No queued actions to replay');
     return;
   }
-
-  console.log(`[SyncService] Replaying ${queue.length} queued actions`);
 
   for (const item of queue) {
     try {
       await updateSyncQueueItem(item.id, { status: 'processing' });
       await executeQueuedAction(item);
       await removeSyncQueueItem(item.id);
-      console.log(`[SyncService] Successfully executed queued action: ${item.type}`);
     } catch (error) {
-      console.error(`[SyncService] Failed to execute queued action: ${item.type}`, error);
       const retryCount = item.retryCount + 1;
       const maxRetries = 3;
 
@@ -213,26 +201,20 @@ async function executeQueuedAction(item: SyncQueueItem): Promise<void> {
   switch (item.type) {
     case 'contribution':
       // TODO: Call actual contract method when integrated
-      console.log('[SyncService] Executing contribution:', item.payload);
       await new Promise((resolve) => setTimeout(resolve, 500));
       break;
     case 'join_group':
       // TODO: Call actual contract method when integrated
-      console.log('[SyncService] Executing join_group:', item.payload);
       await new Promise((resolve) => setTimeout(resolve, 500));
       break;
     case 'create_group':
       // TODO: Call actual contract method when integrated
-      console.log('[SyncService] Executing create_group:', item.payload);
       await new Promise((resolve) => setTimeout(resolve, 500));
       break;
     case 'update_group':
       // TODO: Call actual contract method when integrated
-      console.log('[SyncService] Executing update_group:', item.payload);
       await new Promise((resolve) => setTimeout(resolve, 500));
       break;
-    default:
-      console.warn(`[SyncService] Unknown action type: ${(item as SyncQueueItem).type}`);
   }
 }
 
@@ -244,14 +226,13 @@ async function refreshCache(): Promise<void> {
     // Refresh groups list
     const groupsList = await fetchGroups();
     await cacheGroupsList(groupsList);
-    console.log('[SyncService] Refreshed groups list cache');
 
     // Refresh individual groups that are in cache
     const cachedGroupsList = await getCachedGroupsList();
     if (cachedGroupsList && cachedGroupsList.groups.length > 0) {
       // Only refresh first 10 groups to avoid overloading
       const groupsToRefresh = cachedGroupsList.groups.slice(0, 10);
-      
+
       for (const group of groupsToRefresh) {
         try {
           const detailedGroup = await fetchGroup(group.id);
@@ -260,14 +241,12 @@ async function refreshCache(): Promise<void> {
             await cacheMembers(group.id, detailedGroup.members);
             await cacheContributions(group.id, detailedGroup.contributions);
           }
-        } catch (error) {
-          console.error(`[SyncService] Failed to refresh group ${group.id}:`, error);
+        } catch {
+          // silently continue on individual group refresh failure
         }
       }
-      console.log(`[SyncService] Refreshed ${groupsToRefresh.length} group details`);
     }
   } catch (error) {
-    console.error('[SyncService] Failed to refresh cache:', error);
     throw error;
   }
 }
@@ -288,14 +267,12 @@ export async function queueAction(
     retryCount: 0,
     status: 'pending',
   });
-  
-  console.log(`[SyncService] Queued action: ${type} (id: ${id})`);
-  
+
   // Try to sync immediately if online
   if (navigator.onLine) {
     void syncAll();
   }
-  
+
   return id;
 }
 
@@ -382,6 +359,5 @@ export async function getLastSyncTime(): Promise<Date | null> {
  * Force a manual sync
  */
 export async function forceSyncNow(): Promise<void> {
-  console.log('[SyncService] Manual sync triggered');
   await syncAll();
 }
