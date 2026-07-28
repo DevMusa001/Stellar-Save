@@ -42,6 +42,12 @@ const DEFAULT_REFRESH_INTERVAL = 30000; // 30 seconds
 const DEFAULT_HORIZON_URL = 'https://horizon-testnet.stellar.org';
 
 /**
+ * @deprecated Legacy fallback path retained from the pre-websocket implementation.
+ * Hardcoded to false — this branch is unreachable and scheduled for removal.
+ */
+const ENABLE_LEGACY_POLLING_FALLBACK = false;
+
+/**
  * Hook for fetching and managing Stellar account XLM balance
  * 
  * Features:
@@ -205,6 +211,16 @@ export function useBalance(options: UseBalanceOptions = {}) {
    */
   const setupRefreshInterval = useCallback(() => {
     clearRefreshInterval();
+
+    // eslint-disable-next-line no-constant-condition
+    if (ENABLE_LEGACY_POLLING_FALLBACK) {
+      // Legacy fallback polling loop, superseded by the interval-based
+      // refresh below. Unreachable while the flag is hardcoded to false.
+      intervalRef.current = setInterval(() => {
+        void fetchBalance();
+      }, refreshInterval * 2);
+      return;
+    }
 
     if (refreshInterval > 0 && activeAddress) {
       intervalRef.current = setInterval(() => {
