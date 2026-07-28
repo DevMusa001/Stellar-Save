@@ -4,6 +4,7 @@ import { format as fastCsvFormat } from 'fast-csv';
 import { RecommendationEngine } from '../recommendation';
 import { EmailService } from '../email_service';
 import { ExportService } from '../export_service';
+import { parseOffsetParams, parseCursorParams, paginate, paginateArray, paginateCursorArray } from '../lib/pagination';
 import { BackupService, S3HttpClient } from '../backup_service';
 import { BackupScheduler } from '../backup_scheduler';
 import { RecoveryService } from '../recovery_service';
@@ -249,8 +250,10 @@ export function createV1Router(services: V1Services): Router {
   // Contract Event Indexer Endpoints
   router.get('/events', async (req, res) => {
     try {
-      const { contractId, eventType, startLedger, endLedger, startTime, endTime, limit, offset } =
+      const { contractId, eventType, startLedger, endLedger, startTime, endTime } =
         req.query;
+
+      const pageParams = parseOffsetParams(req.query);
 
       const options: any = {};
       if (contractId) options.contractId = contractId as string;
@@ -259,11 +262,17 @@ export function createV1Router(services: V1Services): Router {
       if (endLedger) options.endLedger = parseInt(endLedger as string);
       if (startTime) options.startTime = new Date(startTime as string);
       if (endTime) options.endTime = new Date(endTime as string);
-      if (limit) options.limit = parseInt(limit as string);
-      if (offset) options.offset = parseInt(offset as string);
+      options.limit = pageParams.limit;
+      options.offset = pageParams.offset;
 
       const result = await eventIndexer.getEvents(options);
-      res.json(result);
+
+      // result may be an array or an object — normalise to PaginatedResult
+      const items: any[] = Array.isArray(result) ? result : (result as any).events ?? [];
+      const total: number = Array.isArray(result)
+        ? items.length
+        : (result as any).total ?? items.length;
+      res.json(paginate(items, total, pageParams));
     } catch (error) {
       console.error('Error fetching events:', error);
       res.status(500).json({ error: 'Failed to fetch events' });
@@ -329,26 +338,24 @@ export function createV1Router(services: V1Services): Router {
     analyticsMiddleware.cache,
     async (req, res) => {
       try {
-        const { startDate, endDate, limit, offset } = req.query;
+        const { startDate, endDate } = req.query;
 
         if (!startDate || !endDate) {
           return res.status(400).json({ error: 'startDate and endDate are required' });
         }
 
+        const pageParams = parseOffsetParams(req.query, { limit: 30 });
+
         const trends = await analyticsService.getPlatformTrends(
           new Date(startDate as string),
           new Date(endDate as string),
-          {
-            limit: limit ? parseInt(limit as string) : 30,
-            offset: offset ? parseInt(offset as string) : 0,
-          }
+          pageParams
         );
 
         res.json({
           startDate,
           endDate,
-          dataPoints: trends.length,
-          trends,
+          ...paginate(trends, trends.length, pageParams),
         });
       } catch (error) {
         console.error('Error fetching platform trends:', error);
@@ -414,19 +421,16 @@ export function createV1Router(services: V1Services): Router {
     analyticsMiddleware.cache,
     async (req, res) => {
       try {
-        const { startDate, endDate, limit, offset } = req.query;
+        const { startDate, endDate } = req.query;
+        const pageParams = parseOffsetParams(req.query, { limit: 20 });
 
         const eventStats = await analyticsService.getEventStats({
           startDate: startDate ? new Date(startDate as string) : undefined,
           endDate: endDate ? new Date(endDate as string) : undefined,
-          limit: limit ? parseInt(limit as string) : 20,
-          offset: offset ? parseInt(offset as string) : 0,
+          ...pageParams,
         });
 
-        res.json({
-          count: eventStats.length,
-          events: eventStats,
-        });
+        res.json(paginate(eventStats, eventStats.length, pageParams));
       } catch (error) {
         console.error('Error fetching event stats:', error);
         res.status(500).json({ error: 'Failed to fetch event statistics' });
@@ -494,17 +498,12 @@ export function createV1Router(services: V1Services): Router {
     analyticsMiddleware.cache,
     async (req, res) => {
       try {
-        const { reportType, limit, offset } = req.query;
+        const { reportType } = req.query;
+        const pageParams = parseOffsetParams(req.query, { limit: 20 });
 
-        const reports = await analyticsService.getReports(reportType as string, {
-          limit: limit ? parseInt(limit as string) : 20,
-          offset: offset ? parseInt(offset as string) : 0,
-        });
+        const reports = await analyticsService.getReports(reportType as string, pageParams);
 
-        res.json({
-          count: reports.length,
-          reports,
-        });
+        res.json(paginate(reports, reports.length, pageParams));
       } catch (error) {
         console.error('Error fetching reports:', error);
         res.status(500).json({ error: 'Failed to fetch reports' });
