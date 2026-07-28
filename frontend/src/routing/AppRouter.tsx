@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Box } from '@mui/material';
 import { Skeleton } from '../components/Skeleton/Skeleton';
+import { RouteErrorBoundary } from '../components/RouteErrorBoundary';
 import { routeConfig } from './routes';
 import { ProtectedRoute } from './ProtectedRoute';
 import { AdminRoute } from './AdminRoute';
@@ -36,23 +37,31 @@ export function AppRouter() {
           let element: JSX.Element;
           if (route.adminOnly) {
             element = (
-              <AdminRoute>
-                <Component />
-              </AdminRoute>
+              <RouteErrorBoundary>
+                <AdminRoute>
+                  <Component />
+                </AdminRoute>
+              </RouteErrorBoundary>
             );
           } else if (route.protected) {
             element = (
-              <ProtectedRoute>
-                <Component />
-              </ProtectedRoute>
+              <RouteErrorBoundary>
+                <ProtectedRoute>
+                  <Component />
+                </ProtectedRoute>
+              </RouteErrorBoundary>
             );
           } else {
-            element = <Component />;
+            element = (
+              <RouteErrorBoundary>
+                <Component />
+              </RouteErrorBoundary>
+            );
           }
 
           return <Route key={route.path} path={route.path} element={element} />;
         })}
-        
+
         {/* Catch-all route for undefined paths */}
         <Route path="*" element={<Navigate to={ROUTES.NOT_FOUND} replace />} />
       </Routes>

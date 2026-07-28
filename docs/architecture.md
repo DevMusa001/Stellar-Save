@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Stellar-Save Architecture Documentation
 
 ## Overview
@@ -89,77 +88,19 @@ Key on-chain operations:
 - Yield-bearing ROSCAs (integrating with Stellar liquidity pools)
 - Mobile app (React Native)
 - Governance module for platform parameters
-=======
-# Architecture Overview
 
-## What is Stellar-Save?
+## Architectural Decision Record (ADR 0001): Shared Access-Control Module
 
-Stellar-Save implements a **Rotating Savings and Credit Association (ROSCA)** — known as *Ajo* or *Esusu* in West Africa — on the Stellar network using Soroban smart contracts.
+### Context & Problem
+Authorization checks (`admin-only`, `member-only`, `creator-only`) were previously duplicated inline across contract entry points. This created inconsistency and maintenance risks.
 
-Members pool equal contributions each cycle. One member receives the entire pool per cycle, rotating through all members until everyone has been paid once.
+### Decision
+Consolidate all authorization logic into `contracts/stellar-save/src/auth.rs`:
+- `require_admin`: Validates caller authentication and checks against global `ContractConfig.admin`.
+- `require_creator`: Validates caller authentication and checks caller equality with `Group.creator`.
+- `require_member`: Validates caller authentication and checks caller membership via `GroupRepository::is_member`.
 
-## High-Level Flow
+### Consequences
+- Shared guard functions reduce code duplication and audit surface.
+- Centralized guard tests cover positive/negative authorization paths.
 
-```
-[create_group] → group created, status=Active, cycle=0
-
-[join_group × N] → when N == max_members, cycle advances to 1
-
-     ┌───────────────────────────────┐
-     │  Each Cycle                   │
-     │                               │
-     │  contribute() × max_members   │
-     │      ↓ all contributed?       │
-     │  execute_payout() (auto)      │
-     │      ↓ payout to member[i]    │
-     │  payout_index++, cycle++      │
-     └───────────────────────────────┘
-         (repeat max_members times)
-
-[is_complete] → true when payout_index == max_members
-```
-
-## Contract Structure
-
-```
-contracts/stellar-save/
-├── Cargo.toml
-└── src/
-    ├── lib.rs      — contract entry point, all public functions
-    ├── types.rs    — Group, GroupStatus, DataKey
-    ├── error.rs    — Error enum
-    └── xlm.rs      — token transfer helper
-```
-
-## Key Design Decisions
-
-**Single contract, multiple groups**
-All ROSCA groups live inside one deployed contract. Groups are identified by an auto-incrementing `u64` ID.
-
-**Automatic payout**
-`contribute()` checks after each contribution whether all members have contributed for the current cycle. If so, it fires the payout immediately — no separate keeper/cron job required.
-
-**Manual payout fallback**
-`execute_payout()` is exposed publicly so anyone can trigger a payout manually once all contributions are confirmed, useful for off-chain tooling.
-
-**Token agnostic**
-The `token` address is passed per invocation rather than stored in the group, supporting any SEP-41 compatible asset. XLM is supported out of the box.
-
-**No slashing / no timeouts (v1)**
-This version has no penalty for missing contributions. Roadmap v2.0 adds configurable timeout + slashing mechanics.
-
-## State Machine
-
-```
-Active (cycle=0, no members)
-  → Active (cycle=0, some members joined)
-    → Active (cycle=1, group full, running)
-      → Active (cycle=N, intermediate cycles)
-        → Complete (all payouts done)
-```
-
-Transitions:
-- `join_group` fills the group → triggers `cycle=1`
-- `contribute` (all in) → triggers payout → increments cycle
-- Last payout → `status = Complete`
->>>>>>> 46b7416 (feat: implement bug bounty program and vulnerability disclosure)

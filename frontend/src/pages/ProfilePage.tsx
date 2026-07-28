@@ -326,7 +326,7 @@ export default function ProfilePage() {
   const transactions = profile?.timeline ?? [];
 
   const handleTransactionClick = (tx: Transaction) => {
-    console.log('Transaction clicked:', tx);
+    // Transaction click handler
   };
 
   const handleSaveSettings = (name: string, _theme: string, _language: string) => {

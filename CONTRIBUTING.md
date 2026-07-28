@@ -216,7 +216,31 @@ const ContributionCard = ({ amount, member, isPaid }: ContributionCardProps) => 
 
 ## Commit Message Conventions
 
-We use [Conventional Commits](https://www.conventionalcommits.org/). Commits are validated by commitlint via a Husky `commit-msg` hook.
+We use [Conventional Commits](https://www.conventionalcommits.org/). Commits are validated by **commitlint** via a Husky `commit-msg` hook that runs automatically on every `git commit`.
+
+### How the hook works
+
+The hook is installed by Husky and lives at `.husky/commit-msg`. It runs `commitlint` against your message before the commit is recorded. A non-conforming message causes the commit to be **rejected** with an error — nothing is committed until the message is fixed.
+
+**Setup** (one-time, after cloning):
+
+```bash
+# Install root dependencies (includes husky + commitlint)
+npm install
+# Husky installs the git hook automatically via the "prepare" script
+```
+
+If the hook is not firing, re-run `npx husky` from the repo root.
+
+**Verify the hook locally:**
+
+```bash
+# This should be rejected (no type prefix):
+git commit --allow-empty -m "my change"
+
+# This should be accepted:
+git commit --allow-empty -m "chore: test commitlint hook"
+```
 
 ### Format
 
@@ -262,7 +286,20 @@ docs: expand contributing guide with architecture overview
 test(contract): add fuzz tests for contribution overflow edge cases
 
 chore: update soroban-sdk to 23.0.3
+
+refactor(mobile): migrate inline stroop formatting to shared SDK utils
+
+style(css): remove unused Vite default classes from App.css
 ```
+
+### Common rejection messages
+
+| Error | Fix |
+|---|---|
+| `subject may not be empty` | Add a description after the colon |
+| `type must be one of [feat, fix, ...]` | Use an allowed type listed above |
+| `subject must not be sentence-case` | Start description with lowercase |
+| `header must not be longer than 100 characters` | Shorten the subject line |
 
 ---
 

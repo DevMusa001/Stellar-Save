@@ -20,6 +20,21 @@ export interface UserProfile {
   timeline: Transaction[];
 }
 
+interface HorizonRecord {
+  id?: string;
+  transaction_hash?: string;
+  amount?: string;
+  source_amount?: string;
+  sent_amount?: string;
+  total_sent_amount?: string;
+  from?: string;
+  type?: string;
+  asset_type?: string;
+  asset_code?: string;
+  asset?: { code?: string };
+  created_at?: string;
+}
+
 function getHorizonServer(network?: string) {
   if (network === 'PUBLIC' || network === 'MAINNET') {
     return new Horizon.Server('https://horizon.stellar.org');
@@ -40,7 +55,7 @@ function parseAmount(value: string | number | undefined) {
   return Number(value.toString()) || 0;
 }
 
-function parseHorizonRecord(record: any, address: string): Transaction | null {
+function parseHorizonRecord(record: HorizonRecord, address: string): Transaction | null {
   const amount = record.amount ?? record.source_amount ?? record.sent_amount ?? record.total_sent_amount ?? '0';
   const parsedAmount = parseAmount(amount);
 
