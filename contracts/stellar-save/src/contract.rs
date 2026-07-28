@@ -3,7 +3,7 @@
 //! All public methods delegate to the domain modules. This file is kept as
 //! a thin façade – no business logic should be added here.
 use core::cmp;
-use crate::contribution::ContributionRecord;
+use crate::contribution::{ContributionPage, ContributionRecord};
 use crate::error::StellarSaveError;
 use crate::events::EventEmitter;
 use crate::events::*;
@@ -16,8 +16,12 @@ use crate::refund::RefundRecord;
 use crate::search::{SearchParams, SearchResult};
 use crate::storage::{StorageKey, StorageKeyBuilder};
 use crate::types::{AssignmentMode, ContractConfig, MemberProfile, PayoutScheduleEntry};
-use soroban_sdk::{contractimpl, Address, Env, String, Symbol, Vec, Map, BytesN};
-use crate::StellarSaveContract;
+use soroban_sdk::{contract, contractimpl, Address, Env, String, Symbol, Vec, Map, BytesN};
+use crate::{milestones, payout_executor, penalty, rating, refund, search, migration};
+
+#[contract]
+pub struct StellarSaveContract;
+
 #[contractimpl]
 impl StellarSaveContract {
     /// Validates that a contribution amount matches the group's required contribution amount.
@@ -291,6 +295,8 @@ impl StellarSaveContract {
     /// This can be used to check if migration is needed.
     pub fn get_storage_version(env: Env) -> u32 {
         migration::get_storage_version(&env)
+    }
+
     /// Updates the global contribution amount limits.
     ///
     /// Only the contract admin can call this function.
@@ -412,6 +418,7 @@ impl StellarSaveContract {
         let current_time = env.ledger().timestamp();
         let min_members = 2; // Default minimum members
         let mut new_group = Group::new(
+            &env,
             group_id,
             creator.clone(),
             rounded_amount,
@@ -1883,7 +1890,7 @@ impl StellarSaveContract {
         let mut defaulted = false;
 
         // 5. Check if cycle is complete (all contributions received)
-        let cycle_complete = Self::is_cycle_complete(env.clone(), group_id)?;
+        let cycle_complete = Self::is_cycle_complete(env.clone(), group_id, group.current_cycle)?;
         
         if cycle_complete {
             // 5a. Execute payout if cycle is complete
@@ -1931,6 +1938,10 @@ impl StellarSaveContract {
                 current_time,
             );
         }
+
+        Ok(())
+    }
+
     /// Submits a bid for the current payout cycle in a `Bid`-order group.
     ///
     /// The member with the highest bid at payout time wins the cycle payout.
@@ -2584,6 +2595,7 @@ impl StellarSaveContract {
         let new_min_members = group1.min_members.min(group2.min_members);
 
         let mut merged_group = Group::new(
+            &env,
             merged_id,
             group1.creator.clone(),
             group1.contribution_amount,
@@ -3756,20 +3768,6 @@ impl StellarSaveContract {
                 .get::<_, ContributionRecord>(&contrib_key)
                 .is_some();
 
-        // Update user member groups index
-        let user_groups_key = StorageKeyBuilder::user_member_groups(member.clone());
-        let mut user_groups: Vec<u64> = env
-            .storage()
-            .persistent()
-            .get(&user_groups_key)
-            .unwrap_or(Vec::new(&env));
-        user_groups.push_back(group_id);
-        env.storage()
-            .persistent()
-            .set(&user_groups_key, &user_groups);
-
-        // Emit event
-        EventEmitter::emit_member_joined(&env, group_id, member, group.member_count, timestamp);
             if !has_contributed {
                 members_needing_reminder.push_back(member.clone());
             }

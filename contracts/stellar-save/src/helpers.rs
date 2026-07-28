@@ -84,40 +84,33 @@ pub fn round_contribution_amount(amount: i128) -> i128 {
 /// // Returns: "GROUP-42"
 /// ```
 pub fn format_group_id(env: &Env, group_id: u64) -> String {
-    // Convert u64 to bytes manually
+    let mut buf = [0u8; 32];
+    buf[0] = b'G';
+    buf[1] = b'R';
+    buf[2] = b'O';
+    buf[3] = b'U';
+    buf[4] = b'P';
+    buf[5] = b'-';
+
     let mut num = group_id;
-    let mut digits = Bytes::new(env);
-    
     if num == 0 {
-        digits.push_back(b'0');
+        buf[6] = b'0';
+        String::from_bytes(env, &buf[..7])
     } else {
-        // Build digits in reverse, then reverse them
-        let mut temp = Bytes::new(env);
+        let mut digits = [0u8; 20];
+        let mut len = 0;
         while num > 0 {
-            temp.push_back(b'0' + (num % 10) as u8);
+            digits[len] = b'0' + (num % 10) as u8;
             num /= 10;
+            len += 1;
         }
-        // Reverse the digits
-        for i in (0..temp.len()).rev() {
-            digits.push_back(temp.get(i).unwrap());
+        let mut idx = 6;
+        for i in (0..len).rev() {
+            buf[idx] = digits[i];
+            idx += 1;
         }
+        String::from_bytes(env, &buf[..idx])
     }
-    
-    // Build the final string: "GROUP-" + digits
-    let mut result = Bytes::new(env);
-    result.push_back(b'G');
-    result.push_back(b'R');
-    result.push_back(b'O');
-    result.push_back(b'U');
-    result.push_back(b'P');
-    result.push_back(b'-');
-    
-    // Append digits
-    for i in 0..digits.len() {
-        result.push_back(digits.get(i).unwrap());
-    }
-    
-    String::from_bytes(env, &result)
 }
 
 /// Checks if the current cycle deadline (plus grace period) has passed.
@@ -256,7 +249,8 @@ mod tests {
         assert_eq!(validate_group_string(&s, 64), Err(StellarSaveError::InvalidMetadata));
     }
 
-
+    #[test]
+    fn test_format_group_id_single_digit() {
         let env = Env::default();
         let result = format_group_id(&env, 1);
         assert_eq!(result, String::from_str(&env, "GROUP-1"));
@@ -494,3 +488,4 @@ mod tests {
         assert_eq!(round_contribution_amount(255_000_000), 255_000_000);
         assert_eq!(round_contribution_amount(1_002_500_000), 1_002_500_000);
     }
+}

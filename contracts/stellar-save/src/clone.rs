@@ -66,6 +66,7 @@ pub fn clone_group(
 
     let now = env.ledger().timestamp();
     let new_group = Group::new(
+        env,
         new_id,
         caller.clone(),
         contribution_amount,
