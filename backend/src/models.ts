@@ -26,6 +26,7 @@ export interface Group {
   currentMembers: number;
   status: string;
   tags: string[];
+  flagged?: boolean;
 }
 
 export interface UserInteraction {
@@ -41,6 +42,7 @@ export interface Member {
   name: string;
   joinedAt: number;
   groupIds: string[];
+  flagged?: boolean;
 }
 
 export interface Transaction {
