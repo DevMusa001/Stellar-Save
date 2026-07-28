@@ -79,6 +79,14 @@ export function useFocusTrap(
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
+      // Also restore focus when the component unmounts while still active
+      // (e.g. a parent conditionally renders the dialog rather than keeping
+      // it mounted and toggling `active`) — otherwise focus would be lost
+      // to <body> instead of returning to the triggering element.
+      if (previousFocusRef.current instanceof HTMLElement) {
+        previousFocusRef.current.focus();
+      }
+      previousFocusRef.current = null;
     };
   }, [active, containerRef]);
 }
