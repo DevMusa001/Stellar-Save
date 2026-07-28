@@ -87,7 +87,7 @@ const ComplianceQueue: React.FC = () => {
                 {!flag.reviewed && (
                   <>
                     <button
-                      onClick={() => console.log('approve', flag.id)}
+                      onClick={() => {}}
                       style={{
                         marginRight: '6px', padding: '4px 10px', background: '#27ae60',
                         color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer',
@@ -96,7 +96,7 @@ const ComplianceQueue: React.FC = () => {
                       Approve
                     </button>
                     <button
-                      onClick={() => console.log('reject', flag.id)}
+                      onClick={() => {}}
                       style={{
                         padding: '4px 10px', background: '#c0392b',
                         color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer',

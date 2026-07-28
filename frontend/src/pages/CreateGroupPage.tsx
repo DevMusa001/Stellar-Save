@@ -23,7 +23,6 @@ const CreateGroupPage: React.FC = () => {
 
     try {
       // TODO: Replace with actual Soroban contract call
-      console.log("Creating group with data:", data);
 
       // Simulate a group ID returned from the contract
       const mockGroupId = `group-${Date.now()}`;
