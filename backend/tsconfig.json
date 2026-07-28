@@ -10,8 +10,7 @@
     "sourceMap": true,
     "incremental": true,
     "skipLibCheck": true,
-    "strictNullChecks": true,
-    "noImplicitAny": false,
+    "strict": true,
     "strictPropertyInitialization": false,
     "esModuleInterop": true,
     "resolveJsonModule": true,
@@ -19,5 +18,9 @@
     "outDir": "dist"
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "../packages/events-schema/generated"
+  ]
 }
