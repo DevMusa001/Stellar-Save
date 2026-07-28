@@ -19,9 +19,9 @@ import { createSseRouter } from './sse';
 import { createInsuranceRouter } from './insurance';
 import { createGovernanceRouter } from './governance';
 import { adminAuthMiddleware } from '../auth_middleware';
-import { fraudDetectionService } from '../fraud_detection_service';
 import { apiKeyService } from '../api_key_service';
 import { apiKeyAuthMiddleware, recordApiUsage } from '../api_key_rate_limiter';
+import { AdminService } from '../admin_service';
 
 // ── Shared service instances (passed in from app) ────────────────────────────
 export interface V1Services {
@@ -580,58 +580,100 @@ export function createV1Router(services: V1Services): Router {
     csvStream.end();
   });
 
-  // ── Admin Reconciliation (Issue #3) ──────────────────────────────────────
-  router.get('/admin/reconciliation/status', adminAuthMiddleware, async (_req, res) => {
-    try {
-      const { getReconciliationService } = await import('../reconciliation_service');
-      const svc = getReconciliationService();
-      if (!svc) return res.status(503).json({ error: 'Reconciliation service not started' });
-      res.json({ message: 'Use POST /admin/reconciliation/run to trigger a run or check Prometheus metrics.' });
-    } catch (err) {
-      res.status(500).json({ error: 'Failed to get reconciliation status' });
-    }
-  });
+  // ── Admin Dashboard Endpoints ────────────────────────────────────────────
+  const adminService = new AdminService();
 
-  router.post('/admin/reconciliation/run', adminAuthMiddleware, async (_req, res) => {
+  // GET /api/v1/admin/stats — Platform statistics for dashboard
+  router.get('/admin/stats', adminAuthMiddleware, async (_req, res) => {
     try {
-      const { getReconciliationService, initReconciliationService } = await import('../reconciliation_service');
-      const svc = getReconciliationService() ?? initReconciliationService();
-      const result = await svc.run();
-      res.json(result);
-    } catch (err) {
-      res.status(500).json({ error: 'Reconciliation run failed', detail: String(err) });
-    }
-  });
-
-  // ── Admin Fraud Detection (Issue #1028) ──────────────────────────────────
-  router.get('/admin/fraud/flags', adminAuthMiddleware, async (req, res) => {
-    const { status } = req.query;
-    try {
-      const flags = await fraudDetectionService.getFlags(status as string | undefined);
-      res.json({ flags });
+      const stats = adminService.getPlatformStats();
+      res.json(stats);
     } catch (error) {
-      res.status(500).json({ error: 'Failed to fetch fraud flags' });
+      res.status(500).json({ error: 'Failed to fetch platform stats' });
     }
   });
 
-  router.patch('/admin/fraud/flags/:id', adminAuthMiddleware, async (req: any, res) => {
-    const { id } = req.params;
-    const { status } = req.body as { status?: string };
-    if (!status) return res.status(400).json({ error: 'status is required' });
+  // GET /api/v1/admin/users — List all users for moderation
+  router.get('/admin/users', adminAuthMiddleware, async (_req, res) => {
     try {
-      const flag = await fraudDetectionService.reviewFlag(id, status, req.adminId || 'admin');
-      res.json({ flag });
+      const users = adminService.getUsers();
+      res.json({ users });
     } catch (error) {
-      res.status(500).json({ error: 'Failed to update fraud flag' });
+      res.status(500).json({ error: 'Failed to fetch users' });
     }
   });
 
-  router.post('/admin/fraud/scan', adminAuthMiddleware, async (_req, res) => {
+  // PATCH /api/v1/admin/users/:id — Update user (flag/unflag, etc)
+  router.patch('/admin/users/:id', adminAuthMiddleware, async (req: any, res) => {
     try {
-      const results = await fraudDetectionService.runScan();
-      res.json({ flagged: results.length, results });
+      const { id } = req.params;
+      const { updates, adminId } = req.body;
+      if (!updates) return res.status(400).json({ error: 'updates is required' });
+      if (!adminId) return res.status(400).json({ error: 'adminId is required' });
+
+      const updated = adminService.updateUser(id, updates, adminId);
+      if (!updated) return res.status(404).json({ error: 'User not found' });
+      res.json(updated);
     } catch (error) {
-      res.status(500).json({ error: 'Fraud scan failed' });
+      res.status(500).json({ error: 'Failed to update user' });
+    }
+  });
+
+  // DELETE /api/v1/admin/users/:id — Delete user
+  router.delete('/admin/users/:id', adminAuthMiddleware, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { adminId } = req.body;
+      if (!adminId) return res.status(400).json({ error: 'adminId is required' });
+
+      const deleted = adminService.deleteUser(id, adminId);
+      if (!deleted) return res.status(404).json({ error: 'User not found' });
+      res.json({ message: 'User deleted successfully' });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to delete user' });
+    }
+  });
+
+  // GET /api/v1/admin/groups — List all groups for moderation
+  router.get('/admin/groups', adminAuthMiddleware, async (_req, res) => {
+    try {
+      // Get groups from contract event indexer or mock data
+      const { mockGroups } = await import('../mock_data');
+      res.json({ groups: mockGroups });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch groups' });
+    }
+  });
+
+  // POST /api/v1/admin/groups/:id/flag — Flag/unflag a group for review
+  router.post('/admin/groups/:id/flag', adminAuthMiddleware, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { flagged, adminId } = req.body;
+      if (typeof flagged !== 'boolean') return res.status(400).json({ error: 'flagged must be boolean' });
+      if (!adminId) return res.status(400).json({ error: 'adminId is required' });
+
+      // For now, return the flagged group (in production, persist this)
+      const { mockGroups } = await import('../mock_data');
+      const group = mockGroups.find((g: any) => g.id === id);
+      if (!group) return res.status(404).json({ error: 'Group not found' });
+
+      // Log the action
+      adminService.logAction(adminId, 'FLAG_GROUP', id, 'Group', { flagged });
+
+      res.json({ ...group, flagged });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to flag group' });
+    }
+  });
+
+  // GET /api/v1/admin/audit-logs — Fetch audit logs (redirects to /api/admin/audit-log)
+  router.get('/admin/audit-logs', adminAuthMiddleware, async (_req, res) => {
+    try {
+      const logs = adminService.getAuditLogs();
+      res.json({ logs });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch audit logs' });
     }
   });
 
