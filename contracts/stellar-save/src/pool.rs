@@ -60,11 +60,21 @@ impl PoolInfo {
     }
 
     /// Calculates the percentage of cycle completion (0-100).
+    ///
+    /// Uses checked arithmetic for the intermediate u64 multiplication so that
+    /// an unusually large `contributors_count` cannot silently wrap around.
+    /// In practice `contributors_count <= member_count <= MAX_MEMBERS` (20), so
+    /// overflow is unreachable, but we guard it explicitly (invariant #14).
     pub fn completion_percentage(&self) -> u32 {
         if self.member_count == 0 {
             return 0;
         }
-        ((self.contributors_count as u64 * 100) / self.member_count as u64) as u32
+        // checked_mul prevents the theoretical overflow of contributors_count * 100
+        // when contributors_count approaches u64::MAX (impossible in practice).
+        let numerator = (self.contributors_count as u64)
+            .checked_mul(100)
+            .unwrap_or(u64::MAX); // saturate — still produces a valid 0-100 result
+        (numerator / self.member_count as u64) as u32
     }
 }
 

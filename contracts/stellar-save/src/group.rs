@@ -464,10 +464,16 @@ impl Group {
     /// * `env` - Soroban environment for event emission
     ///
     /// # Panics
-    /// Panics if the group is already complete.
+    /// Panics if the group is already complete or if the cycle counter would overflow.
     pub fn advance_cycle(&mut self, env: &soroban_sdk::Env) {
         assert!(!self.is_complete(), "group is already complete");
-        self.current_cycle += 1;
+        // Use checked_add to prevent silent overflow on the cycle counter.
+        // In practice max_members is capped at MAX_MEMBERS (20), so overflow is
+        // unreachable in production, but we guard it explicitly per invariant #12.
+        self.current_cycle = self
+            .current_cycle
+            .checked_add(1)
+            .expect("cycle counter overflow");
 
         // Mark as complete if we've reached the final cycle
         // Deactivate if we've reached the final cycle
@@ -569,8 +575,16 @@ impl Group {
     /// The caller is responsible for also appending the member's `Address` to
     /// the `GROUP_MEMBERS_{id}` storage list and verifying that
     /// `member_count < max_members` before calling this method.
+    ///
+    /// # Panics
+    /// Panics if `member_count` would overflow `u32`. In practice this is
+    /// unreachable because `max_members` is capped at `MAX_MEMBERS` (20), but
+    /// the check is here as an explicit safety invariant.
     pub fn add_member(&mut self) {
-        self.member_count += 1;
+        self.member_count = self
+            .member_count
+            .checked_add(1)
+            .expect("member_count overflow");
     }
 
     /// Returns `true` if the group is currently paused.
