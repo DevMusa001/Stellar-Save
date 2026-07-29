@@ -17,6 +17,7 @@
 //! The design follows a permissionless execution model where any address can trigger
 //! payout execution once preconditions are met.
 
+use crate::auth::is_active_member;
 use crate::error::StellarSaveError;
 use crate::events::EventEmitter;
 use crate::group::{Group, GroupStatus};
@@ -253,8 +254,7 @@ fn verify_recipient_eligibility(
     current_cycle: u32,
 ) -> Result<(), StellarSaveError> {
     // Check 1: Verify recipient is a current member of the group
-    let member_key = StorageKeyBuilder::member_profile(group_id, recipient.clone());
-    if !env.storage().persistent().has(&member_key) {
+    if !is_active_member(env, group_id, recipient) {
         return Err(StellarSaveError::NotMember);
     }
 
