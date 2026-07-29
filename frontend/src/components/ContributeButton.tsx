@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import type { ContributeButtonProps } from "../types/contribution";
 import { ContributionSuccessModal } from "./ContributionSuccessModal";
 import { useTransaction, explorerUrl } from "../hooks/useTransaction";
 import { useContract } from "../hooks/useContract";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 
 // ── Confirmation Modal ──────────────────────────────────────────────────────
 
@@ -17,11 +18,38 @@ function ConfirmModal({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Trap Tab/Shift+Tab within the dialog and restore focus to the trigger on close.
+  useFocusTrap(dialogRef, true);
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCancel();
+    },
+    [onCancel]
+  );
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6">
-        <h3 className="text-lg font-bold text-gray-900 text-center mb-1">Confirm Contribution</h3>
-        <p className="text-gray-500 text-sm text-center mb-4">Cycle #{cycleId}</p>
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onClick={(e) => e.target === e.currentTarget && onCancel()}
+    >
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-contribution-title"
+        aria-describedby="confirm-contribution-description"
+        className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6"
+      >
+        <h3 id="confirm-contribution-title" className="text-lg font-bold text-gray-900 text-center mb-1">Confirm Contribution</h3>
+        <p id="confirm-contribution-description" className="text-gray-500 text-sm text-center mb-4">Cycle #{cycleId}</p>
         <div className="bg-gray-50 rounded-xl p-4 mb-5">
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Amount</span>

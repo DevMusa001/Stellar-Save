@@ -18,6 +18,7 @@ pub mod deadline;
 pub mod error;
 pub mod errors;
 pub mod events;
+pub mod governance;
 pub mod group;
 pub mod helpers;
 pub mod migration;
@@ -39,6 +40,7 @@ pub mod types;
 
 // mod auto_contribution_tests;
 pub mod gas_benchmark;
+pub mod test_utils;
 // mod invitation_tests;
 // mod merge_tests;
 // mod migration_matrix_tests;
@@ -50,7 +52,7 @@ pub mod milestones;
 // mod upgrade_tests;
 
 // ── Re-exports ────────────────────────────────────────────────────────────────
-pub use auth::{require_admin, require_creator, require_member};
+pub use auth::{is_active_member, require_admin, require_creator, require_member};
 pub use contract::{StellarSaveContract, StellarSaveContractClient};
 pub use contribution::{ContributionPage, ContributionRecord};
 pub use error::{ContractResult, ErrorCategory, StellarSaveError};
