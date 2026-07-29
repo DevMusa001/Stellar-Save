@@ -34,6 +34,7 @@ import { createV2Router } from './routes/v2';
 import { metricsMiddleware, metricsHandler } from './metrics';
 import { requestLogger } from './logger';
 import { disconnectPrisma, prisma } from './prisma_client';
+import { createGracefulShutdown } from './graceful_shutdown';
 import { createRateLimiterMiddleware, createAuthRateLimiterMiddleware } from './rate_limiter';
 import { createTieredRateLimiter, configureTier, setEndpointCost } from './redis_rate_limiter';
 import { createQuotaReporterRouter } from './routes/quota_reporter';
@@ -384,11 +385,14 @@ server.listen(PORT, async () => {
   }
 });
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
+// Graceful shutdown: stop accepting new connections, let in-flight requests
+// finish within a timeout, then close DB connections before exiting.
+const gracefulShutdown = createGracefulShutdown(server, async () => {
   fraudDetectionWorker.stop();
-  server.close();
-  disconnectPrisma().catch(() => {});
-});
+  await disconnectPrisma();
+}, { timeoutMs: parseInt(process.env.SHUTDOWN_TIMEOUT_MS ?? '10000', 10) });
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 export { app };
