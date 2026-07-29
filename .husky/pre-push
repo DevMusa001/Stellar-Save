@@ -1,0 +1,29 @@
+#!/usr/bin/env sh
+# Pre-push hook: run Clippy on the stellar-save contract before pushing.
+# Blocks the push if any warning is present (-D warnings).
+#
+# Setup: this hook is installed automatically by husky.
+# To skip in an emergency: git push --no-verify
+# (document the reason in your PR if you do this)
+
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "Running cargo clippy on contracts/stellar-save..."
+
+cargo +1.94.1 clippy \
+  --locked \
+  --manifest-path contracts/stellar-save/Cargo.toml \
+  --all-targets \
+  -- -D warnings
+
+STATUS=$?
+
+if [ "$STATUS" -ne 0 ]; then
+  echo ""
+  echo "❌ Clippy failed — push blocked."
+  echo "   Fix all warnings before pushing, or document an"
+  echo "   #[allow(...)] exception (see docs/clippy-policy.md)."
+  exit 1
+fi
+
+echo "✅ Clippy passed — proceeding with push."

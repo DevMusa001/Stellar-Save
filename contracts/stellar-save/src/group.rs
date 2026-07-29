@@ -273,7 +273,7 @@ mod tests {
         assert_eq!(group.cycle_duration, 604800);
         assert_eq!(group.max_members, 5);
         assert_eq!(group.current_cycle, 0);
-        assert_eq!(group.is_active, true);
+        assert!(group.is_active);
         assert_eq!(group.created_at, 1234567890);
     }
 

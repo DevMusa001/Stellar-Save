@@ -15,6 +15,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "aho-corasick"
+version = "1.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ddd31a130427c27518df266943a5308ed92d4b226cc639f5a8f1002816174301"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "android_system_properties"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -232,6 +241,38 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.117",
+]
+
+[[package]]
+name = "camino"
+version = "1.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb1307f12aa967b5a58416e87b3653360e0fd614a016b6e970db08fecbb1b80d"
+dependencies = [
+ "serde_core",
+]
+
+[[package]]
+name = "cargo-platform"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e35af189006b9c0f00a064685c727031e3ed2d8020f7ba284d78cc2671bd36ea"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "cargo_metadata"
+version = "0.18.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2d886547e41f740c616ae73108f6eb70afe6d940c7bc697cb30f13daec073037"
+dependencies = [
+ "camino",
+ "cargo-platform",
+ "semver",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -658,6 +699,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
 
 [[package]]
+name = "fungible-allowlist-example"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+ "stellar-access",
+ "stellar-macros",
+ "stellar-tokens",
+]
+
+[[package]]
 name = "generic-array"
 version = "0.14.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -715,6 +766,15 @@ dependencies = [
  "ff",
  "rand_core 0.6.4",
  "subtle",
+]
+
+[[package]]
+name = "guess-the-number"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+ "stellar-registry",
+ "stellar-xdr",
 ]
 
 [[package]]
@@ -953,6 +1013,15 @@ name = "memchr"
 version = "2.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8ca58f447f06ed17d5fc4043ce1b10dd205e060fb3ce5b979b8ed8e59ff3f79"
+
+[[package]]
+name = "nft-enumerable-example"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+ "stellar-macros",
+ "stellar-tokens",
+]
 
 [[package]]
 name = "num-bigint"
@@ -1211,10 +1280,33 @@ dependencies = [
 ]
 
 [[package]]
-name = "regex-syntax"
-version = "0.8.10"
+name = "regex"
+version = "1.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc897dd8d9e8bd1ed8cdad82b5966c3e0ecae09fb1907d58efaa013543185d0a"
+checksum = "f020237b6c8eed93db2e2cb53c00c60a8e1bc73da7d073199a1180401450218d"
+dependencies = [
+ "aho-corasick",
+ "memchr",
+ "regex-automata",
+ "regex-syntax",
+]
+
+[[package]]
+name = "regex-automata"
+version = "0.4.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8fcfdb36bda0c880c5931cdc7a2bcdc8ba4556847b9d912bca70bc94708711ad"
+dependencies = [
+ "aho-corasick",
+ "memchr",
+ "regex-syntax",
+]
+
+[[package]]
+name = "regex-syntax"
+version = "0.8.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 
 [[package]]
 name = "rfc6979"
@@ -1319,6 +1411,10 @@ name = "semver"
 version = "1.0.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d767eb0aabc880b29956c35734170f26ed551a859dbd361d140cdbeca61ab1e2"
+dependencies = [
+ "serde",
+ "serde_core",
+]
 
 [[package]]
 name = "serde"
@@ -1541,7 +1637,7 @@ dependencies = [
  "serde_with",
  "soroban-env-common",
  "soroban-env-host",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -1596,7 +1692,7 @@ checksum = "2bc4fef2cad410563bbd56f9fa68731268f89e90a4d7e6c4d62adb45c0b4c571"
 dependencies = [
  "base64",
  "stellar-xdr",
- "thiserror",
+ "thiserror 1.0.69",
  "wasmparser 0.116.1",
 ]
 
@@ -1613,7 +1709,7 @@ dependencies = [
  "soroban-spec",
  "stellar-xdr",
  "syn 2.0.117",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -1658,12 +1754,78 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
+name = "stellar-access"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "974e461afe1538ee54dc9314ed46144f393265c7625606c240760cd6a2baaadf"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "stellar-build"
+version = "0.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca65fe40f758802cff4bab7715e2e65b013cb196d715eda2180c5e3e9614f206"
+dependencies = [
+ "cargo_metadata",
+ "sha2",
+ "thiserror 2.0.19",
+ "topological-sort",
+]
+
+[[package]]
+name = "stellar-contract-utils"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2a918daa29a4cfc0fe97118a2425893a0336a33b436e8f70ca4b4f5c739f23e4"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "stellar-macros"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8bb4b3dd8f599646dab3e949ba2febc3a060a194bc1a3711ddd5e7c275acfe5e"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
+name = "stellar-registry"
+version = "0.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0fcacbce7779ca20863e3f980bc7d3b09865c8ece4bcb7b1b75ed22ca357c4b0"
+dependencies = [
+ "stellar-scaffold-macro",
+]
+
+[[package]]
 name = "stellar-save"
 version = "0.1.0"
 dependencies = [
  "ed25519-dalek",
  "proptest",
  "soroban-sdk",
+]
+
+[[package]]
+name = "stellar-scaffold-macro"
+version = "0.8.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41923f65b80378bfcec4124df5f560105e9e4d298872b2f03e2c7ba4eed26d48"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "regex",
+ "sha2",
+ "stellar-build",
+ "stellar-strkey 0.0.13",
+ "stellar-xdr",
+ "syn 2.0.117",
 ]
 
 [[package]]
@@ -1685,6 +1847,16 @@ dependencies = [
  "crate-git-revision",
  "data-encoding",
  "heapless",
+]
+
+[[package]]
+name = "stellar-tokens"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cbc8be39a374a3520726017623d7c79d7d0530e626778619ba8f9462037e37aa"
+dependencies = [
+ "soroban-sdk",
+ "stellar-contract-utils",
 ]
 
 [[package]]
@@ -1741,6 +1913,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "syn"
+version = "3.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "53e9bae58849f64dfa4f5d5ae372c8341f7305f82a3868709269343628b659a3"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "unicode-ident",
+]
+
+[[package]]
 name = "tempfile"
 version = "3.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1759,7 +1942,16 @@ version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6aaf5339b578ea85b50e080feb250a3e8ae8cfcdff9a461c9ec2904bc923f52"
 dependencies = [
- "thiserror-impl",
+ "thiserror-impl 1.0.69",
+]
+
+[[package]]
+name = "thiserror"
+version = "2.0.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09a43598840e33d5b0331f38c5e30d13bb11c11210a4b58f0d9b18a5a5eefcd9"
+dependencies = [
+ "thiserror-impl 2.0.19",
 ]
 
 [[package]]
@@ -1771,6 +1963,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.117",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "2.0.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43cbfe0cf76104d42a574802844187e84a305e531ed54455f11fbde0f10541cd"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.3",
 ]
 
 [[package]]
@@ -1803,6 +2006,12 @@ dependencies = [
  "num-conv",
  "time-core",
 ]
+
+[[package]]
+name = "topological-sort"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ea68304e134ecd095ac6c3574494fc62b909f416c4fca77e440530221e549d3d"
 
 [[package]]
 name = "typenum"

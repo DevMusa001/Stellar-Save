@@ -32,7 +32,7 @@ pub struct StellarSaveContract;
 
 #[contractimpl]
 impl StellarSaveContract {
-    pub fn hello(env: Env) -> soroban_sdk::Symbol {
+    pub fn hello(_env: Env) -> soroban_sdk::Symbol {
         soroban_sdk::symbol_short!("hello")
     }
 }
