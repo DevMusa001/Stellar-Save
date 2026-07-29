@@ -165,7 +165,7 @@ mod upgrade_tests {
 
         assert_eq!(record.amount, 10_000_000);
         assert_eq!(record.cycle_number, 0);
-        assert_eq!(record.member, member);
+        assert_eq!(record.member_address, member);
     }
 
     /// GroupStatus enum values must deserialise correctly after an upgrade.
@@ -370,6 +370,8 @@ mod upgrade_tests {
             max_members: 20,
             min_cycle_duration: 1,
             max_cycle_duration: u64::MAX,
+            treasury: None,
+            creation_fee: 0,
         };
         env.storage()
             .persistent()
@@ -480,7 +482,7 @@ mod upgrade_tests {
             ))
             .expect("contribution record must survive rollback");
         assert_eq!(record.amount, 5_000_000);
-        assert_eq!(record.member, member);
+        assert_eq!(record.member_address, member);
     }
 
     /// Backfilled TokenConfig entries must be removed after rollback; pre-existing
