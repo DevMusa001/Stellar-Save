@@ -27,6 +27,29 @@ async function freezeAnimations(page: import('@playwright/test').Page) {
   });
 }
 
+/** Force dark color-scheme without relying on OS emulation. */
+async function enableDarkMode(page: import('@playwright/test').Page) {
+  await page.addStyleTag({ content: ':root { color-scheme: dark; }' });
+  await page.emulateMedia({ colorScheme: 'dark' });
+}
+
+/** Take both light and dark snapshots with a single call. */
+async function snapshotBothModes(page: import('@playwright/test').Page, name: string) {
+  await percySnapshot(page, `${name} - light`);
+  await enableDarkMode(page);
+  await percySnapshot(page, `${name} - dark`);
+}
+
+/**
+ * Inject a mock connected-wallet flag so ProtectedRoute allows access
+ * to authenticated screens without a real wallet extension.
+ */
+async function mockWalletConnected(page: import('@playwright/test').Page) {
+  await page.evaluate(() => {
+    sessionStorage.setItem('__mock_wallet_connected__', 'true');
+  });
+}
+
 // ── Landing / Home ────────────────────────────────────────────────────────────
 
 test('Landing page — default state', async ({ page }) => {
@@ -105,6 +128,34 @@ test('Create Group form — step 4 review', async ({ page }) => {
   await page.getByLabel(/maximum members/i).fill('10');
   await page.getByRole('button', { name: /next/i }).click();
   await percySnapshot(page, 'Create Group form - step 4 review');
+});
+
+// ── Member badge gallery ──────────────────────────────────────────────────────
+
+/*
+ * The badge gallery renders reputation, streak and payout badges for every
+ * member, so it is the surface most exposed to silent drift in badge styling.
+ * Both themes are captured because badge colors are theme-derived.
+ */
+
+test('Member badge gallery — group member directory', async ({ page }) => {
+  await page.goto('/');
+  await mockWalletConnected(page);
+  await page.goto('/groups/1/members');
+  await freezeAnimations(page);
+  await page.waitForLoadState('networkidle');
+  await snapshotBothModes(page, 'Member badge gallery - directory');
+});
+
+test('Member badge gallery — member profile badges', async ({ page }) => {
+  await page.goto('/');
+  await mockWalletConnected(page);
+  await page.goto(
+    '/members/GABC1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890ABCDEFGHIJ',
+  );
+  await freezeAnimations(page);
+  await page.waitForLoadState('networkidle');
+  await snapshotBothModes(page, 'Member badge gallery - profile badges');
 });
 
 // ── 404 page ──────────────────────────────────────────────────────────────────
