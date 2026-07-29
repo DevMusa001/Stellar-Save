@@ -520,9 +520,8 @@ impl StellarSaveContract {
             if rounded_amount > config.max_contribution {
                 return Err(StellarSaveError::ContributionTooHigh);
             }
-            if max_members < config.min_members
-                || max_members > config.max_members
-                || cycle_duration < config.min_cycle_duration
+            validate_max_members(&env, max_members)?;
+            if cycle_duration < config.min_cycle_duration
                 || cycle_duration > config.max_cycle_duration
             {
                 return Err(StellarSaveError::InvalidState);
@@ -642,6 +641,7 @@ impl StellarSaveContract {
         }
 
         // 4. Task: Validate new parameters against global config
+        validate_max_members(&env, new_max_members)?;
         let config_key = StorageKeyBuilder::contract_config();
         if let Some(config) = env
             .storage()
@@ -650,8 +650,6 @@ impl StellarSaveContract {
         {
             if new_contribution < config.min_contribution
                 || new_contribution > config.max_contribution
-                || new_max_members < config.min_members
-                || new_max_members > config.max_members
                 || new_duration < config.min_cycle_duration
                 || new_duration > config.max_cycle_duration
             {
@@ -2520,6 +2518,10 @@ impl StellarSaveContract {
             return Err(StellarSaveError::InvalidState);
         }
 
+        if group.member_count >= group.max_members {
+            return Err(StellarSaveError::GroupFull);
+        }
+
         // Reject if already a member
         if env
             .storage()
@@ -2666,11 +2668,14 @@ impl StellarSaveContract {
             return Err(StellarSaveError::InvalidState);
         }
 
-        // 4. Validate compatibility
+        // 4. Validate compatibility and combined capacity
         if group1.contribution_amount != group2.contribution_amount
             || group1.cycle_duration != group2.cycle_duration
         {
             return Err(StellarSaveError::MergeIncompatible);
+        }
+        if group1.member_count + group2.member_count > group1.max_members {
+            return Err(StellarSaveError::GroupFull);
         }
 
         // 5. Load member lists from both groups
@@ -5280,10 +5285,26 @@ pub fn validate_amount_range(env: &Env, amount: i128) -> Result<(), StellarSaveE
             return Err(StellarSaveError::InvalidAmount);
         }
     }
+/// Validates that a max_members value is within the allowed range.
+pub fn validate_max_members(env: &Env, max_members: u32) -> Result<(), StellarSaveError> {
+    let config_key = StorageKeyBuilder::contract_config();
+    if let Some(config) = env
+        .storage()
+        .persistent()
+        .get::<_, ContractConfig>(&config_key)
+    {
+        if max_members < config.min_members || max_members > config.max_members {
+            return Err(StellarSaveError::InvalidState);
+        }
+    }
     Ok(())
 }
 
 impl StellarSaveContract {
+    /// Validates that a max_members value is within the allowed range.
+    pub fn validate_max_members(env: Env, max_members: u32) -> Result<(), StellarSaveError> {
+        validate_max_members(&env, max_members)
+    }
     // =========================================================================
     // ISSUE #479: Contribution Proof Verification
     // =========================================================================
