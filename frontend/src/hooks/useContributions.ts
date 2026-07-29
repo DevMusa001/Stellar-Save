@@ -92,8 +92,3 @@ export function useContributions(
 
   return { contributions, currentCycle, status, isLoading, error: error?.message ?? null, refresh };
 }
-
-// Keep backward-compat export for tests
-export function clearContributionsCache() {
-  // no-op — React Query manages its own cache
-}
