@@ -1,7 +1,12 @@
+import { useState } from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { axe, toHaveNoViolations } from "jest-axe";
 import { OnboardingTutorial, useOnboardingTutorial } from "../components/OnboardingTutorial";
 import { renderHook, act } from "@testing-library/react";
+
+expect.extend(toHaveNoViolations);
 
 beforeEach(() => {
   localStorage.clear();
@@ -102,6 +107,78 @@ describe("OnboardingTutorial", () => {
     render(<OnboardingTutorial />);
     const firstDot = screen.getByLabelText("Go to step 1");
     expect(firstDot).toHaveAttribute("aria-current", "step");
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = render(<OnboardingTutorial />);
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it("dialog has role=dialog, aria-modal, aria-labelledby and aria-describedby", () => {
+    render(<OnboardingTutorial />);
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(dialog).toHaveAttribute("aria-labelledby", "onboarding-title");
+    expect(dialog).toHaveAttribute("aria-describedby", "onboarding-description");
+    expect(document.getElementById("onboarding-title")).toHaveTextContent("Welcome to Stellar-Save");
+  });
+
+  it("moves focus into the dialog when opened", () => {
+    render(<OnboardingTutorial />);
+    expect(screen.getByRole("dialog")).toContainElement(document.activeElement as HTMLElement);
+  });
+
+  it("Tab cycles focus within the dialog and wraps around", async () => {
+    const user = userEvent.setup();
+    render(<OnboardingTutorial />);
+
+    const skip = screen.getByLabelText("Skip tutorial");
+    const back = screen.getByLabelText("Previous step");
+    const next = screen.getByLabelText("Next step");
+
+    // Skip is the first focusable element in the dialog.
+    expect(document.activeElement).toBe(skip);
+
+    // Shift+Tab from the first element wraps to the last (Next).
+    await user.tab({ shift: true });
+    expect(document.activeElement).toBe(next);
+
+    // Tab from the last element wraps back to the first (Skip).
+    await user.tab();
+    expect(document.activeElement).toBe(skip);
+
+    expect(back).toBeDisabled();
+  });
+
+  it("closes the tutorial on Escape and saves completion", () => {
+    render(<OnboardingTutorial />);
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByTestId("onboarding-tutorial")).not.toBeInTheDocument();
+    expect(localStorage.getItem("stellar-save-onboarding-complete")).toBe("true");
+  });
+
+  it("restores focus to the triggering element when dismissed via Skip", () => {
+    localStorage.setItem("stellar-save-onboarding-complete", "true");
+
+    function Harness() {
+      const [show, setShow] = useState(false);
+      return (
+        <div>
+          <button onClick={() => setShow(true)}>Replay tutorial</button>
+          <OnboardingTutorial forceShow={show} />
+        </div>
+      );
+    }
+    render(<Harness />);
+    const trigger = screen.getByRole("button", { name: /replay tutorial/i });
+    trigger.focus();
+    fireEvent.click(trigger);
+
+    expect(screen.getByTestId("onboarding-tutorial")).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("Skip tutorial"));
+
+    expect(screen.queryByTestId("onboarding-tutorial")).not.toBeInTheDocument();
+    expect(document.activeElement).toBe(trigger);
   });
 });
 

@@ -44,17 +44,9 @@
   transition: transform 0.3s ease;
 }
 
+/* spin keyframe is defined globally in Spinner.css */
 .balance-display__refresh-icon.spinning {
   animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .balance-display__empty {

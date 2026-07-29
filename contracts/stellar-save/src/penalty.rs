@@ -12,7 +12,7 @@
 
 use soroban_sdk::{contracttype, Address, Env};
 
-use crate::{error::StellarSaveError, events::EventEmitter, storage::StorageKeyBuilder};
+use crate::{auth::is_active_member, error::StellarSaveError, events::EventEmitter, storage::StorageKeyBuilder};
 
 // ─── Type Aliases ─────────────────────────────────────────────────────────────
 
@@ -153,8 +153,7 @@ pub fn apply_penalty(
         .ok_or(StellarSaveError::GroupNotFound)?;
 
     // 2. Verify member belongs to the group
-    let member_key = StorageKeyBuilder::member_profile(group_id, member.clone());
-    if !env.storage().persistent().has(&member_key) {
+    if !is_active_member(env, group_id, &member) {
         return Err(StellarSaveError::NotMember);
     }
 
@@ -241,8 +240,7 @@ pub fn recover_penalty(
         .ok_or(StellarSaveError::GroupNotFound)?;
 
     // 2. Verify member
-    let member_key = StorageKeyBuilder::member_profile(group_id, member.clone());
-    if !env.storage().persistent().has(&member_key) {
+    if !is_active_member(env, group_id, &member) {
         return Err(StellarSaveError::NotMember);
     }
 

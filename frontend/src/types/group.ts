@@ -1,6 +1,9 @@
-import type { FilterState, SortOption } from '../components/GroupFilters';
+// Re-export shared primitives from the canonical SDK package so there is a
+// single source of truth for these types across frontend, backend, and mobile.
+export type { GroupStatus, PaginationMeta } from '@stellar-save/sdk';
 
-export type GroupStatus = 'active' | 'completed' | 'pending';
+import type { FilterState, SortOption } from '../components/GroupFilters';
+import type { GroupStatus, PaginationMeta } from '@stellar-save/sdk';
 
 export interface PublicGroup {
   id: string;
@@ -21,15 +24,6 @@ export interface PublicGroup {
 export interface PaginationState {
   page: number;
   pageSize: number;
-}
-
-export interface PaginationMeta {
-  page: number;
-  pageSize: number;
-  totalItems: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
 }
 
 // ─── Filters ──────────────────────────────────────────────────────────────────
@@ -105,6 +99,10 @@ export interface UseGroupsReturn {
   error: string | null;
   /** Whether any non-default filter is active */
   hasActiveFilters: boolean;
+  /** Whether the data is from cache and potentially stale */
+  isStale?: boolean;
+  /** Whether the data is being served from offline cache */
+  fromCache?: boolean;
   /** Update one or more filter fields; resets to page 1 */
   setFilters: (patch: Partial<GroupFilters>) => void;
   /** Reset all filters to defaults */

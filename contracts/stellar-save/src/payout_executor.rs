@@ -17,6 +17,7 @@
 //! The design follows a permissionless execution model where any address can trigger
 //! payout execution once preconditions are met.
 
+use crate::auth::is_active_member;
 use crate::error::StellarSaveError;
 use crate::events::EventEmitter;
 use crate::group::{Group, GroupStatus};
@@ -50,11 +51,12 @@ use soroban_sdk::{Address, Env};
 /// Validates Requirements 1.1, 1.2, 1.3, 1.4, 1.5
 fn validate_cycle_complete(
     env: &Env,
-    group_id: u64,
+    group: &Group,
     current_cycle: u32,
 ) -> Result<crate::pool::PoolInfo, StellarSaveError> {
-    // Call PoolCalculator to retrieve comprehensive cycle data
-    let pool_info = PoolCalculator::get_pool_info(env, group_id, current_cycle)?;
+    // Reuse the already-loaded group instead of re-reading it from storage,
+    // avoiding a redundant SLOAD of the group_data entry within this invocation.
+    let pool_info = PoolCalculator::get_pool_info_for_group(env, group, current_cycle)?;
 
     // Validate that the pool is ready for payout
     // This checks:
@@ -253,8 +255,7 @@ fn verify_recipient_eligibility(
     current_cycle: u32,
 ) -> Result<(), StellarSaveError> {
     // Check 1: Verify recipient is a current member of the group
-    let member_key = StorageKeyBuilder::member_profile(group_id, recipient.clone());
-    if !env.storage().persistent().has(&member_key) {
+    if !is_active_member(env, group_id, recipient) {
         return Err(StellarSaveError::NotMember);
     }
 
@@ -647,7 +648,16 @@ fn advance_cycle_or_complete(env: &Env, group: &mut Group) -> Result<(), Stellar
     // Emit CycleAdvanced event (only when group is not yet complete)
     if !group.is_complete() {
         let timestamp = env.ledger().timestamp();
-        EventEmitter::emit_cycle_advanced(env, group.id, group.current_cycle, timestamp);
+        let old_cycle = group.current_cycle.saturating_sub(1);
+        EventEmitter::emit_cycle_advanced(
+            env,
+            group.id,
+            old_cycle,
+            group.current_cycle,
+            true,
+            false,
+            timestamp,
+        );
     }
 
     Ok(())
@@ -810,7 +820,7 @@ pub fn execute_payout(env: Env, group_id: u64) -> Result<(), StellarSaveError> {
     // All validation checks must pass before any state modifications occur
 
     // Step 4: Validate cycle is complete (all members have contributed)
-    let pool_info = validate_cycle_complete(&env, group_id, current_cycle)?;
+    let pool_info = validate_cycle_complete(&env, &group, current_cycle)?;
 
     // Step 4b: Apply penalties to members who missed contributions this cycle.
     // Penalties are added to the pool total so the payout recipient benefits.

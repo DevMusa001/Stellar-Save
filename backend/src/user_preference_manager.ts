@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from './prisma_client';
 import crypto from 'crypto';
 import { logger } from './logger';
-
-const prisma = new PrismaClient();
 
 /**
  * User Preference Manager Service
@@ -176,15 +174,8 @@ export class UserPreferenceManager {
    * Register device token for push notifications
    */
   static async registerDeviceToken(userId: string, deviceToken: string, platform: string) {
-    // In a full implementation, you would store device tokens in a separate table
-    // For now, this is a placeholder for device management
+    // TODO: persist via Prisma once the DeviceToken model is added to the schema.
     logger.info(`Device token registered for user: ${userId}`, { platform });
-
-    // In production:
-    // return await prisma.deviceToken.create({
-    //   data: { userId, deviceToken, platform, active: true },
-    // });
-
     return { userId, deviceToken, platform, registeredAt: new Date() };
   }
 
@@ -193,12 +184,7 @@ export class UserPreferenceManager {
    */
   static async unregisterDeviceToken(userId: string, deviceToken: string) {
     logger.info(`Device token unregistered for user: ${userId}`);
-
-    // In production:
-    // return await prisma.deviceToken.delete({
-    //   where: { deviceToken, userId },
-    // });
-
+    // TODO: persist via Prisma once the DeviceToken model is added to the schema.
     return { userId, deviceToken, unregisteredAt: new Date() };
   }
 
@@ -206,13 +192,7 @@ export class UserPreferenceManager {
    * Get all device tokens for a user
    */
   static async getUserDeviceTokens(userId: string): Promise<string[]> {
-    // In production:
-    // const tokens = await prisma.deviceToken.findMany({
-    //   where: { userId, active: true },
-    //   select: { deviceToken: true },
-    // });
-    // return tokens.map((t) => t.deviceToken);
-
+    // TODO: query via Prisma once the DeviceToken model is added to the schema.
     logger.info(`Retrieved device tokens for user: ${userId}`);
     return [];
   }
