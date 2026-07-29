@@ -1066,4 +1066,246 @@ mod upgrade_tests {
         assert_eq!(config2.token_address, custom_token);
         assert_eq!(config2.token_decimals, 6);
     }
+
+    // ── 10. Migration correctness & failure-scenario tests ───────────────────
+
+    /// Verify that the storage schema version after a successful apply is V2
+    /// and that previously-absent TokenConfig entries are now present.
+    #[test]
+    fn test_migration_correctness_schema_and_token_config_written() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = setup_contract(&env);
+        let creator = Address::generate(&env);
+        let xlm = Address::generate(&env);
+
+        // Three groups without any pre-existing TokenConfig.
+        for id in 1u64..=3 {
+            seed_group(&env, id, &creator);
+        }
+        set_total_groups(&env, 3);
+
+        // Before migration: no TokenConfig entries, schema at V1.
+        assert_eq!(get_schema_version(&env), V1);
+        for id in 1u64..=3 {
+            assert!(
+                !env.storage()
+                    .persistent()
+                    .has(&StorageKey::Group(GroupKey::TokenConfig(id))),
+                "group {id} must not have TokenConfig before migration"
+            );
+        }
+
+        v1_to_v2::apply(&env, &admin, xlm.clone());
+
+        // After migration: all groups have TokenConfig, schema at V2.
+        assert_eq!(get_schema_version(&env), V2);
+        for id in 1u64..=3 {
+            let config: TokenConfig = env
+                .storage()
+                .persistent()
+                .get(&StorageKey::Group(GroupKey::TokenConfig(id)))
+                .unwrap_or_else(|| panic!("group {id} must have TokenConfig after migration"));
+            assert_eq!(config.token_address, xlm,
+                "group {id} must have the XLM token address after migration");
+            assert_eq!(config.token_decimals, 7,
+                "group {id} must have 7 decimals (XLM) after migration");
+        }
+    }
+
+    /// Verify that rollback after a partial migration (only some groups processed)
+    /// leaves the storage in a consistent, clean state.
+    ///
+    /// This simulates a "partial rollback" scenario: apply writes TokenConfig for
+    /// some groups but if rollback is called afterward, only the entries recorded
+    /// in the backfill index are removed — groups that already had configs are
+    /// untouched.
+    #[test]
+    fn test_partial_rollback_consistency() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = setup_contract(&env);
+        let creator = Address::generate(&env);
+        let xlm = Address::generate(&env);
+
+        // Group 1: no pre-existing config (will be backfilled).
+        // Group 2: has a pre-existing custom config (must survive rollback).
+        // Group 3: no pre-existing config (will be backfilled).
+        seed_group(&env, 1, &creator);
+        seed_group(&env, 2, &creator);
+        seed_group(&env, 3, &creator);
+
+        let custom_token = Address::generate(&env);
+        env.storage().persistent().set(
+            &StorageKey::Group(GroupKey::TokenConfig(2)),
+            &TokenConfig {
+                token_address: custom_token.clone(),
+                token_decimals: 6,
+            },
+        );
+        set_total_groups(&env, 3);
+
+        // Apply then rollback.
+        v1_to_v2::apply(&env, &admin, xlm.clone());
+        assert_eq!(get_schema_version(&env), V2);
+
+        v1_to_v2::rollback(&env, &admin);
+        assert_eq!(get_schema_version(&env), V1);
+
+        // After rollback:
+        // - Group 1's backfilled config must be removed.
+        assert!(
+            !env.storage()
+                .persistent()
+                .has(&StorageKey::Group(GroupKey::TokenConfig(1))),
+            "group 1 backfilled TokenConfig must be removed after rollback"
+        );
+        // - Group 2's pre-existing config must be preserved.
+        let preserved: TokenConfig = env
+            .storage()
+            .persistent()
+            .get(&StorageKey::Group(GroupKey::TokenConfig(2)))
+            .expect("group 2 pre-existing TokenConfig must survive rollback");
+        assert_eq!(preserved.token_address, custom_token,
+            "group 2 must retain its original token address after rollback");
+        // - Group 3's backfilled config must be removed.
+        assert!(
+            !env.storage()
+                .persistent()
+                .has(&StorageKey::Group(GroupKey::TokenConfig(3))),
+            "group 3 backfilled TokenConfig must be removed after rollback"
+        );
+    }
+
+    /// Verify storage is consistent after rollback even when no groups exist —
+    /// simulates a migration that ran on an empty contract and is then reversed.
+    #[test]
+    fn test_rollback_on_empty_contract_is_consistent() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = setup_contract(&env);
+        let xlm = Address::generate(&env);
+
+        // Empty contract — no groups.
+        set_total_groups(&env, 0);
+
+        v1_to_v2::apply(&env, &admin, xlm.clone());
+        assert_eq!(get_schema_version(&env), V2);
+
+        // Rollback on empty state must not panic and must reset to V1.
+        v1_to_v2::rollback(&env, &admin);
+        assert_eq!(get_schema_version(&env), V1);
+    }
+
+    /// Verify that the migration record correctly tracks the direction of
+    /// each operation (apply = V1→V2, rollback = V2→V1) even across multiple
+    /// apply-rollback cycles.
+    #[test]
+    fn test_migration_record_direction_across_multiple_cycles() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = setup_contract(&env);
+        let xlm = Address::generate(&env);
+        set_total_groups(&env, 0);
+
+        // Cycle 1: apply
+        v1_to_v2::apply(&env, &admin, xlm.clone());
+        let rec = load_migration_record(&env).expect("record must exist after apply");
+        assert_eq!(rec.from_version, V1);
+        assert_eq!(rec.to_version, V2);
+        assert_eq!(rec.applied_by, admin);
+
+        // Cycle 1: rollback
+        v1_to_v2::rollback(&env, &admin);
+        let rec = load_migration_record(&env).expect("record must exist after rollback");
+        assert_eq!(rec.from_version, V2);
+        assert_eq!(rec.to_version, V1);
+
+        // Cycle 2: apply again
+        v1_to_v2::apply(&env, &admin, xlm.clone());
+        let rec = load_migration_record(&env).expect("record must exist after second apply");
+        assert_eq!(rec.from_version, V1);
+        assert_eq!(rec.to_version, V2);
+    }
+
+    /// Verify that ContributionRecord data is preserved with correct field values
+    /// (especially `member_address`) across a full apply+rollback migration cycle.
+    ///
+    /// This test guards against regressions where field name changes or struct
+    /// layout changes could silently corrupt or lose member identity data.
+    #[test]
+    fn test_migration_correctness_contribution_record_member_address_preserved() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = setup_contract(&env);
+        let creator = Address::generate(&env);
+        let member = Address::generate(&env);
+        let xlm = Address::generate(&env);
+
+        seed_group(&env, 1, &creator);
+        seed_contribution(&env, 1, 0, &member, 7_000_000);
+        set_total_groups(&env, 1);
+
+        v1_to_v2::apply(&env, &admin, xlm.clone());
+        v1_to_v2::rollback(&env, &admin);
+
+        let key = StorageKeyBuilder::contribution_individual(1, 0, member.clone());
+        let stored: ContributionRecord = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .expect("ContributionRecord must survive apply+rollback");
+
+        // Canonical field name: member_address (not member)
+        assert_eq!(stored.member_address, member,
+            "member_address field must survive migration round-trip");
+        assert_eq!(stored.amount, 7_000_000);
+        assert_eq!(stored.group_id, 1);
+        assert_eq!(stored.cycle_number, 0);
+    }
+
+    /// Verify that attempting to rollback when schema is already at V1 is a safe
+    /// no-op and does not corrupt any existing group or contribution data.
+    #[test]
+    fn test_rollback_noop_does_not_corrupt_existing_data() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = setup_contract(&env);
+        let creator = Address::generate(&env);
+        let member = Address::generate(&env);
+        let xlm = Address::generate(&env);
+
+        seed_group(&env, 1, &creator);
+        seed_contribution(&env, 1, 0, &member, 3_000_000);
+        set_total_groups(&env, 1);
+
+        // Apply migration first to reach V2.
+        v1_to_v2::apply(&env, &admin, xlm.clone());
+        // Roll back to V1.
+        v1_to_v2::rollback(&env, &admin);
+        assert_eq!(get_schema_version(&env), V1);
+
+        // Call rollback again when already at V1 — must be a safe no-op.
+        v1_to_v2::rollback(&env, &admin);
+        assert_eq!(get_schema_version(&env), V1,
+            "schema must remain V1 after redundant rollback");
+
+        // Group data must still be intact.
+        let stored: Group = env
+            .storage()
+            .persistent()
+            .get(&StorageKeyBuilder::group_data(1))
+            .expect("group data must be intact after redundant rollback");
+        assert_eq!(stored.id, 1);
+
+        // Contribution data must still be intact.
+        let key = StorageKeyBuilder::contribution_individual(1, 0, member.clone());
+        let contrib: ContributionRecord = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .expect("ContributionRecord must be intact after redundant rollback");
+        assert_eq!(contrib.amount, 3_000_000);
+        assert_eq!(contrib.member_address, member);
+    }
 }
