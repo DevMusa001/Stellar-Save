@@ -1936,11 +1936,16 @@ impl StellarSaveContract {
             .persistent()
             .get(&count_key)
             .unwrap_or(0u32)
-            + 1;
+            .checked_add(1)
+            .ok_or(StellarSaveError::Overflow)?;
         env.storage().persistent().set(&count_key, &vote_count);
 
-        // Auto-pause when >50% of members have raised a dispute
-        let threshold = group.member_count / 2 + 1;
+        // Auto-pause when >50% of members have raised a dispute.
+        // Use checked arithmetic on both halving and the +1 to guard against
+        // a theoretically saturated member_count (invariant #13).
+        let threshold = (group.member_count / 2)
+            .checked_add(1)
+            .ok_or(StellarSaveError::Overflow)?;
         let auto_paused = vote_count >= threshold;
         if auto_paused {
             group.dispute_active = true;
@@ -3711,7 +3716,10 @@ impl StellarSaveContract {
         env.storage().persistent().set(&pos_idx_key, &member);
 
         // Update group member count
-        group.member_count += 1;
+        group.member_count = group
+            .member_count
+            .checked_add(1)
+            .ok_or(StellarSaveError::Overflow)?;
         env.storage().persistent().set(&group_key, &group);
 
         // Referral tracking: store mapping and emit event if referrer provided
@@ -3804,7 +3812,10 @@ impl StellarSaveContract {
         env.storage().persistent().set(&members_key, &members);
 
         // Update group member count
-        group.member_count -= 1;
+        group.member_count = group
+            .member_count
+            .checked_sub(1)
+            .ok_or(StellarSaveError::Overflow)?;
         env.storage().persistent().set(&group_key, &group);
 
         let timestamp = env.ledger().timestamp();
