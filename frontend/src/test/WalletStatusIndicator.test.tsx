@@ -167,19 +167,31 @@ describe('WalletStatusIndicator', () => {
       copied: false,
     });
 
-    // Mock fast response (100ms latency)
-    mockFetch.mockImplementation(() => {
-      return new Promise(resolve => {
+    /*
+     * Fake timers only: a real 100ms setTimeout races waitFor's polling on a
+     * loaded CI runner, which is what made this assertion flaky. The latency is
+     * produced by advancing the clock instead of by wall-clock waiting.
+     */
+    vi.useFakeTimers();
+    mockFetch.mockImplementation(
+      () => new Promise((resolve) => {
         setTimeout(() => resolve({ ok: true }), 100);
-      });
-    });
+      }),
+    );
 
-    render(<WalletStatusIndicator />);
+    try {
+      render(<WalletStatusIndicator />);
 
-    // Wait for latency to be measured and displayed
-    await waitFor(() => {
+      // Nothing has resolved yet, so no latency badge can be rendered.
+      expect(screen.queryByText(/ms/)).not.toBeInTheDocument();
+
+      // Advance exactly past the mocked latency and flush the resolution.
+      await vi.advanceTimersByTimeAsync(100);
+
       expect(screen.getByText(/ms/)).toBeInTheDocument();
-    });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('shows offline when fetch fails', async () => {

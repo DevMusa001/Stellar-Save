@@ -236,6 +236,55 @@ describe('MyComponent', () => {
 });
 ```
 
+### Fake timers: required pattern for any delay-dependent test
+
+Never let a test depend on a real delay. A real `setTimeout` plus `waitFor`
+passes locally and fails intermittently on a loaded CI runner, because
+`waitFor` can exhaust its polling budget before the timer fires. Drive the
+clock explicitly instead.
+
+```ts
+it('shows the latency badge once the request resolves', async () => {
+  vi.useFakeTimers();
+  mockFetch.mockImplementation(
+    () => new Promise((resolve) => {
+      setTimeout(() => resolve({ ok: true }), 100);
+    }),
+  );
+
+  try {
+    render(<MyComponent />);
+
+    // Assert the pre-timer state so the advance is proven to be what changes it.
+    expect(screen.queryByText(/ms/)).not.toBeInTheDocument();
+
+    // Advance the exact mocked duration and flush the resolved promise.
+    await vi.advanceTimersByTimeAsync(100);
+
+    expect(screen.getByText(/ms/)).toBeInTheDocument();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+```
+
+Rules:
+
+- Use `await vi.advanceTimersByTimeAsync(ms)`, not the synchronous
+  `advanceTimersByTime`, whenever a promise resolves inside the timer. The
+  async form flushes the microtask queue that the callback schedules.
+- Assert the state before and after the advance. A test that only asserts the
+  final state cannot distinguish a working timer from an immediate resolution.
+- Restore real timers in a `finally` block or `afterEach`. A leaked fake clock
+  silently breaks every later test in the file.
+- Do not mix `waitFor` with fake timers. If the wait is timer-driven, advance
+  the clock; `waitFor` polls on the same clock you just froze.
+- With `userEvent`, pass the shim: `userEvent.setup({ advanceTimers: vi.advanceTimersByTime })`.
+  Without it, user interactions hang on a frozen clock.
+
+Reference implementation: the connection-strength badge test in
+`frontend/src/test/WalletStatusIndicator.test.tsx`.
+
 ---
 
 ## Backend Tests (Jest + ts-jest)
