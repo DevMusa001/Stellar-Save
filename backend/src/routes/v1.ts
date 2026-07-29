@@ -15,6 +15,7 @@ import { AnalyticsService } from '../analytics_service';
 import { FeedbackService } from '../feedback_service';
 import { createAnalyticsMiddlewareStack, createAnalyticsCacheMiddleware } from '../analytics_middleware';
 import { Group, UserInteraction, UserPreference } from '../models';
+import { toContractEventDTO } from '../dto';
 import { createNotificationRouter } from './notifications';
 import { createSseRouter } from './sse';
 import { createInsuranceRouter } from './insurance';
@@ -279,8 +280,10 @@ export function createV1Router(services: V1Services): Router {
 
       const result = await eventIndexer.getEvents(options);
       const items: any[] = Array.isArray(result) ? result : (result as any).events ?? [];
-      const total: number = Array.isArray(result) ? items.length : (result as any).total ?? items.length;
-      res.json(paginate(items, total, pageParams));
+      const total: number = Array.isArray(result)
+        ? items.length
+        : (result as any).total ?? items.length;
+      res.json(paginate(items.map(toContractEventDTO), total, pageParams));
     } catch (error) {
       logger.error('Error fetching events', { error: String(error) });
       next(new AppError('EVENTS_FETCH_FAILED', 'Failed to fetch events', 500));
@@ -679,7 +682,7 @@ export function createV1Router(services: V1Services): Router {
         skip: offset,
       });
       await recordApiUsage(req, res);
-      res.json({ count: groups.length, limit, offset, groups });
+      res.json({ count: groups.length, limit, offset, groups: groups.map(toContractEventDTO) });
     } catch (error) {
       logger.error('Failed to fetch public groups', { error: String(error) });
       next(new AppError('FETCH_FAILED', 'Failed to fetch groups', 500));

@@ -10,7 +10,7 @@ import {
   Sync,
   Warning,
 } from '@mui/icons-material';
-import { useSyncStatus } from '../hooks/useOfflineSync';
+import { useSyncStatus } from '../hooks/offline';
 import { formatDistanceToNow } from '../utils/formatDate';
 
 export function OfflineIndicator(): JSX.Element | null {

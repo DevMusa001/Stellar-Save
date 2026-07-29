@@ -34,6 +34,7 @@ import { createV2Router } from './routes/v2';
 import { metricsMiddleware, metricsHandler } from './metrics';
 import { requestLogger, logger } from './logger';
 import { disconnectPrisma, prisma } from './prisma_client';
+import { createGracefulShutdown } from './graceful_shutdown';
 import { createRateLimiterMiddleware, createAuthRateLimiterMiddleware } from './rate_limiter';
 import { createTieredRateLimiter, configureTier, setEndpointCost } from './redis_rate_limiter';
 import { createQuotaReporterRouter } from './routes/quota_reporter';
@@ -67,6 +68,13 @@ const CSP_POLICY = [
   "report-uri /api/csp-report",
 ].join('; ');
 
+// ── Global middleware chain (order matters) ──────────────────────────────────
+// 1. cors            — must run before any response is written
+// 2. express.json     — parse bodies before anything reads req.body
+// 3. compression      — compress responses after body parsing
+// 4. requestLogger    — log requests as they arrive
+// 5. metricsMiddleware — record request metrics
+// 6. auditMiddleware  — tamper-evident audit log for state-changing operations
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -386,11 +394,14 @@ server.listen(PORT, async () => {
   }
 });
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
+// Graceful shutdown: stop accepting new connections, let in-flight requests
+// finish within a timeout, then close DB connections before exiting.
+const gracefulShutdown = createGracefulShutdown(server, async () => {
   fraudDetectionWorker.stop();
-  server.close();
-  disconnectPrisma().catch(() => {});
-});
+  await disconnectPrisma();
+}, { timeoutMs: parseInt(process.env.SHUTDOWN_TIMEOUT_MS ?? '10000', 10) });
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 export { app };
