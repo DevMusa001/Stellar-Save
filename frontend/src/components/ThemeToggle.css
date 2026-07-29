@@ -15,8 +15,8 @@
 }
 
 .theme-toggle:hover {
-  background-color: rgba(128, 128, 128, 0.15);
-  border-color: rgba(128, 128, 128, 0.25);
+  background-color: color-mix(in srgb, var(--color-text-secondary) 15%, transparent);
+  border-color: color-mix(in srgb, var(--color-text-secondary) 25%, transparent);
 }
 
 .theme-toggle:focus-visible {
@@ -32,7 +32,7 @@
 /* Labelled variant */
 .theme-toggle--labelled {
   padding: 0.5rem 0.875rem;
-  border-color: rgba(128, 128, 128, 0.3);
+  border-color: color-mix(in srgb, var(--color-text-secondary) 30%, transparent);
   font-size: 0.875rem;
   font-weight: 500;
 }

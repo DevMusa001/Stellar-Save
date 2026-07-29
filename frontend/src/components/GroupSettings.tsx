@@ -158,7 +158,7 @@ export function GroupSettings({ group, onSaved }: GroupSettingsProps) {
           {pendingDiff.map((d) => (
             <Typography key={d.field} variant="body2" sx={{ mb: 1 }}>
               <strong>{d.field}:</strong>{' '}
-              <span style={{ textDecoration: 'line-through', color: '#999' }}>{d.from || '(empty)'}</span>
+              <span style={{ textDecoration: 'line-through', color: 'var(--color-text-secondary)' }}>{d.from || '(empty)'}</span>
               {' → '}
               <span>{d.to || '(empty)'}</span>
             </Typography>
