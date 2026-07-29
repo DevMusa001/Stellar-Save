@@ -14,12 +14,13 @@
 
 use soroban_sdk::{
     testutils::Address as _,
-    token::{StellarAssetClient, TokenClient},
+    token::TokenClient,
     Address, Env, Vec,
 };
 
 use crate::{
     group::{Group, GroupStatus, TokenConfig},
+    test_utils::deploy_mock_token,
     MemberProfile, StellarSaveContract, StellarSaveError, StorageKeyBuilder,
 };
 
@@ -32,12 +33,6 @@ const CYCLE_DURATION: u64 = 3600;
 const MAX_MEMBERS: u32 = 2;
 const GRACE_PERIOD: u64 = 0;
 
-/// Deploy a mock SEP-41 token (Stellar Asset Contract) and return its address.
-fn deploy_mock_token(env: &Env) -> Address {
-    let admin = Address::generate(env);
-    env.register_stellar_asset_contract_v2(admin).address()
-}
-
 /// Set up an active group with two members in storage.
 /// Returns (group_id, token_address, creator, member).
 fn setup_active_group(env: &Env) -> (u64, Address, Address, Address) {
@@ -47,7 +42,7 @@ fn setup_active_group(env: &Env) -> (u64, Address, Address, Address) {
     let group_id = 1u64;
 
     // Mint tokens to both participants
-    let sac = StellarAssetClient::new(env, &token);
+    let sac = soroban_sdk::token::StellarAssetClient::new(env, &token);
     sac.mint(&creator, &10_000_000i128);
     sac.mint(&member, &10_000_000i128);
 

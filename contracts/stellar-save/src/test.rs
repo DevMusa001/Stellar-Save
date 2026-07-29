@@ -3,56 +3,11 @@ extern crate std;
 
 use super::*;
 use soroban_sdk::{
-    testutils::Address as _,
-    token::{StellarAssetClient, TokenClient},
-    Address, Env,
+    token::TokenClient,
+    Address,
 };
 
-// ─── Test helpers ────────────────────────────────────────────────────────────
-
-fn setup<'a>() -> (Env, StellarSaveClient<'a>, Address, StellarAssetClient<'a>) {
-    let env = Env::default();
-    env.mock_all_auths();
-
-    let admin = Address::generate(&env);
-    let sac = env.register_stellar_asset_contract_v2(admin.clone());
-    let token = sac.address();
-    let sac_client = StellarAssetClient::new(&env, &token);
-
-    let contract_id = env.register(StellarSave, ());
-    let client = StellarSaveClient::new(&env, &contract_id);
-
-    (env, client, token, sac_client)
-}
-
-/// Mint `xlm` XLM (in stroops) to `address`.
-fn mint(sac: &StellarAssetClient, address: &Address, xlm: i128) {
-    sac.mint(address, &(xlm * xlm::STROOPS_PER_XLM));
-}
-
-/// Create a group with 3 members and return (group_id, [alice, bob, carol]).
-fn setup_3_member_group(
-    env: &Env,
-    client: &StellarSaveClient,
-    sac: &StellarAssetClient,
-) -> (u64, Address, Address, Address) {
-    let contribution = 10 * xlm::STROOPS_PER_XLM;
-    let group_id = client.create_group(&contribution, &10u32, &3u32);
-
-    let alice = Address::generate(env);
-    let bob = Address::generate(env);
-    let carol = Address::generate(env);
-
-    mint(sac, &alice, 100);
-    mint(sac, &bob, 100);
-    mint(sac, &carol, 100);
-
-    client.join_group(&group_id, &alice);
-    client.join_group(&group_id, &bob);
-    client.join_group(&group_id, &carol);
-
-    (group_id, alice, bob, carol)
-}
+use crate::test_utils::{setup, setup_3_member_group, mint};
 
 // ─── Group creation ───────────────────────────────────────────────────────────
 
