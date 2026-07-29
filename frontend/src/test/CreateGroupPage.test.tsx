@@ -2,9 +2,11 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CreateGroupPage from '../pages/CreateGroupPage';
 import { routeConfig } from '../routing/routes';
 import { ROUTES } from '../routing/constants';
+import { queryKeys } from '../lib/queryKeys';
 
 // Mock wallet so the form doesn't block on "connect wallet"
 vi.mock('../hooks/useWallet', () => ({
@@ -23,12 +25,17 @@ vi.mock('react-router-dom', async () => {
   return { ...actual, useNavigate: () => vi.fn() };
 });
 
-function renderPage() {
-  return render(
-    <MemoryRouter>
-      <CreateGroupPage />
-    </MemoryRouter>,
-  );
+function renderPage(queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })) {
+  return {
+    queryClient,
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <CreateGroupPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    ),
+  };
 }
 
 // Step through all 5 steps with valid data, insurance disabled
@@ -74,6 +81,19 @@ describe('CreateGroupPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/group created successfully/i)).toBeInTheDocument();
+    });
+  });
+
+  it('invalidates the shared groups query cache after group creation', async () => {
+    const user = userEvent.setup();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+    renderPage(queryClient);
+    await fillAndSubmitForm(user);
+
+    await waitFor(() => {
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.groups.all() });
     });
   });
 
