@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { jwtAuthMiddleware, AuthenticatedRequest } from '../auth_middleware';
-import { initiateDeposit, initiateWithdraw, syncTransactionStatus, getTransaction } from '../services/sep24';
+import { initiateDeposit, initiateWithdraw, syncTransactionStatus, getTransaction, CircuitBreakerOpenError } from '../services/sep24';
 import { getKycStatus } from '../services/kyc';
 import { logger } from '../logger';
 import { rampProtection } from '../fiat_ramp_protection';
@@ -23,6 +23,9 @@ export function createRampRouter(): Router {
       return res.status(201).json(result);
     } catch (err: any) {
       logger.error('[ramp] deposit initiation failed', { error: err?.message });
+      if (err instanceof CircuitBreakerOpenError || err?.code === 'CIRCUIT_OPEN') {
+        return res.status(503).json({ error: 'Fiat ramp provider is currently unavailable (circuit open)', detail: err?.message });
+      }
       return res.status(502).json({ error: 'Failed to initiate deposit', detail: err?.message });
     }
   });
@@ -42,6 +45,9 @@ export function createRampRouter(): Router {
       return res.status(201).json(result);
     } catch (err: any) {
       logger.error('[ramp] withdraw initiation failed', { error: err?.message });
+      if (err instanceof CircuitBreakerOpenError || err?.code === 'CIRCUIT_OPEN') {
+        return res.status(503).json({ error: 'Fiat ramp provider is currently unavailable (circuit open)', detail: err?.message });
+      }
       return res.status(502).json({ error: 'Failed to initiate withdraw', detail: err?.message });
     }
   });
@@ -53,6 +59,9 @@ export function createRampRouter(): Router {
       return res.json(record);
     } catch (err: any) {
       logger.error('[ramp] status sync failed', { error: err?.message });
+      if (err instanceof CircuitBreakerOpenError || err?.code === 'CIRCUIT_OPEN') {
+        return res.status(503).json({ error: 'Fiat ramp provider is currently unavailable (circuit open)', detail: err?.message });
+      }
       return res.status(404).json({ error: err?.message ?? 'Not found' });
     }
   });

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import { getExplorerTxUrl } from '../utils/explorerUrl';
 import './ContributionSuccessModal.css';
 
@@ -150,6 +151,7 @@ export function ContributionSuccessModal({
 }: ContributionSuccessModalProps) {
   const [muted, setMuted] = useLocalStorage('contribution-sound-muted', false);
   const playedRef = useRef(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -157,6 +159,10 @@ export function ContributionSuccessModal({
     },
     [onClose]
   );
+
+  // Trap Tab/Shift+Tab within the dialog while open and restore focus to the
+  // triggering element on close.
+  useFocusTrap(dialogRef, open);
 
   useEffect(() => {
     if (!open) {
@@ -175,9 +181,11 @@ export function ContributionSuccessModal({
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby="success-modal-title"
+      aria-describedby="success-modal-description"
       style={{
         position: 'fixed',
         inset: 0,
@@ -257,7 +265,7 @@ export function ContributionSuccessModal({
         >
           Contribution Successful!
         </h2>
-        <p style={{ margin: '0 0 16px', color: 'var(--color-text-secondary)', fontSize: '14px' }}>
+        <p id="success-modal-description" style={{ margin: '0 0 16px', color: '#6b7280', fontSize: '14px' }}>
           {amount} XLM · Cycle #{cycleId}
         </p>
 

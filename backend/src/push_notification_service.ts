@@ -39,21 +39,7 @@ export class FirebaseProvider implements PushNotificationProvider {
     data?: Record<string, string>
   ): Promise<string> {
     try {
-      // In production, use Firebase Admin SDK:
-      // const admin = require('firebase-admin');
-      // if (!admin.apps.length) {
-      //   admin.initializeApp({
-      //     credential: admin.credential.cert(this.serviceAccount),
-      //     projectId: this.projectId,
-      //   });
-      // }
-      // const message = {
-      //   notification: { title, body },
-      //   data: data || {},
-      //   token: deviceToken,
-      // };
-      // return await admin.messaging().send(message);
-
+      // TODO: integrate Firebase Admin SDK when credentials are provisioned.
       logger.info('Firebase notification prepared', {
         deviceToken: deviceToken.substring(0, 20) + '...',
         title,
@@ -175,19 +161,7 @@ export class OneSignalProvider implements PushNotificationProvider {
         priority: 10,
       };
 
-      // In production:
-      // const response = await fetch(`${this.baseUrl}/notifications`, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json; charset=utf-8',
-      //     'Authorization': `Basic ${this.apiKey}`,
-      //   },
-      //   body: JSON.stringify(payload),
-      // });
-      // const result = await response.json();
-      // if (!response.ok) throw new Error(result.errors?.join(', '));
-      // return result.body.id;
-
+      // TODO: integrate OneSignal SDK when credentials are provisioned.
       logger.info('OneSignal notification prepared', {
         userId: deviceToken,
         title,

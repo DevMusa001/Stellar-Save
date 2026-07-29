@@ -356,12 +356,4 @@ async function sendRotationFailureAlert(
     error: error instanceof Error ? error.message : 'Unknown error',
     timestamp: new Date().toISOString(),
   });
-
-  // Example: Send to SNS topic
-  // const sns = new SNSClient({ region: process.env.AWS_REGION });
-  // await sns.send(new PublishCommand({
-  //   TopicArn: process.env.ALERT_TOPIC_ARN,
-  //   Subject: `Secret Rotation Failed: ${secretId}`,
-  //   Message: JSON.stringify({ secretId, step, error }, null, 2),
-  // }));
 }

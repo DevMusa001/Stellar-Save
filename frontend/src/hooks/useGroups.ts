@@ -14,7 +14,7 @@ import {
   getCachedGroupsListWithStatus,
   cacheGroupsList,
 } from '../lib/db';
-import { useIsOnline } from './useOfflineSync';
+import { useIsOnline } from './offline';
 
 // ─── Filtering / sorting helpers ──────────────────────────────────────────────
 

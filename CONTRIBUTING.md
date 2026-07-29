@@ -491,6 +491,41 @@ View CI status in GitHub Actions tab.
 
 ---
 
+## Security: Pre-push Dependency Audit
+
+Before pushing a branch, run the local vulnerability scan to catch known CVEs early:
+
+```bash
+# Full audit (npm + cargo)
+./scripts/pre-push-audit.sh
+
+# npm only (frontend + backend)
+./scripts/pre-push-audit.sh --npm
+
+# Rust only
+./scripts/pre-push-audit.sh --cargo
+```
+
+This script is also installed as a Husky **pre-push** git hook, so it runs automatically on every `git push`. If you need to bypass it (e.g., pushing a WIP branch that you know has a known-safe advisory), run:
+
+```bash
+git push --no-verify
+```
+
+### Triage policy
+
+See [docs/dependency-update-policy.md](docs/dependency-update-policy.md) for the full triage process. In short:
+
+| Severity | Required action |
+|---|---|
+| CRITICAL | Must fix or receive explicit maintainer approval before merge |
+| HIGH | Must fix or document accepted risk in `.cargo/audit.toml` / `npm audit` allowlist |
+| MODERATE / LOW | Log and track; do not block push |
+
+The script exits non-zero only on HIGH or CRITICAL findings. Lower-severity advisories are reported but do not fail the check.
+
+---
+
 ## Pull Request Process
 
 ### Branch Naming Conventions

@@ -1,3 +1,8 @@
+// Re-export MemberStatus from the canonical SDK package.
+export type { MemberStatus } from '@stellar-save/sdk';
+
+import type { MemberStatus } from '@stellar-save/sdk';
+
 export type MemberSortOption =
   | 'contributions-desc'
   | 'contributions-asc'
@@ -32,7 +37,7 @@ export interface MemberProfile {
   payoutPosition: number;
   totalMembers: number;
   hasReceivedPayout: boolean;
-  status: 'active' | 'inactive' | 'pending' | 'removed';
+  status: MemberStatus;
   /** Streak of consecutive on-time contributions */
   streak?: number;
   /** Last contribution timestamp */
