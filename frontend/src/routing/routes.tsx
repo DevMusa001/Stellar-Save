@@ -2,6 +2,8 @@ import { lazy } from "react";
 import { ROUTES } from "./constants";
 import type { RouteConfig } from "./types";
 
+const AdminDashboardPage = lazy(() => import("../pages/AdminDashboardPage"));
+const RecoverySetupPage = lazy(() => import("../pages/RecoverySetupPage"));
 const HomePage = lazy(() => import("../pages/HomePage"));
 const LandingPage = lazy(() => import("../pages/LandingPage"));
 const DashboardPage = lazy(() => import("../pages/DashboardPage"));
@@ -28,6 +30,11 @@ const NotificationSettings = lazy(() => import("../pages/settings/NotificationSe
 const AboutPage = lazy(() => import("../pages/AboutPage"));
 const FeedbackAdminPage = lazy(() => import("../pages/FeedbackAdminPage"));
 const TransactionHistoryPage = lazy(() => import("../pages/TransactionHistoryPage"));
+const GovernancePage = lazy(() => import("../pages/GovernancePage"));
+const TransactionBuilderPage = lazy(() => import("../pages/TransactionBuilderPage"));
+const HardwareWalletPage = lazy(() => import("../pages/HardwareWalletPage"));
+const DepositPage = lazy(() => import("../pages/DepositPage"));
+const WithdrawPage = lazy(() => import("../pages/WithdrawPage"));
 
 export const routeConfig: RouteConfig[] = [
   {
@@ -167,6 +174,34 @@ export const routeConfig: RouteConfig[] = [
     description: "Your full transaction history",
   },
   {
+    path: ROUTES.TRANSACTION_BUILDER,
+    component: TransactionBuilderPage,
+    protected: true,
+    title: "Transaction Builder - Stellar Save",
+    description: "Build and simulate multi-step transactions",
+  },
+  {
+    path: ROUTES.HARDWARE_WALLET,
+    component: HardwareWalletPage,
+    protected: true,
+    title: "Hardware Wallet - Stellar Save",
+    description: "Connect and manage Ledger/Trezor hardware wallets",
+  },
+  {
+    path: ROUTES.DEPOSIT,
+    component: DepositPage,
+    protected: true,
+    title: "Buy Crypto - Stellar Save",
+    description: "Purchase XLM or stablecoins via bank transfer",
+  },
+  {
+    path: ROUTES.WITHDRAW,
+    component: WithdrawPage,
+    protected: true,
+    title: "Sell Crypto - Stellar Save",
+    description: "Withdraw crypto to your bank account",
+  },
+  {
     path: ROUTES.GROUP_JOIN,
     component: JoinViaInvite,
     protected: false,
@@ -200,6 +235,28 @@ export const routeConfig: RouteConfig[] = [
     protected: true,
     title: "Feedback Dashboard - Stellar Save",
     description: "Review and respond to user feedback",
+  },
+  {
+    path: ROUTES.ADMIN_DASHBOARD,
+    component: AdminDashboardPage,
+    protected: true,
+    adminOnly: true,
+    title: "Admin Dashboard - Stellar Save",
+    description: "Platform health, moderation, and audit logs",
+  },
+  {
+    path: ROUTES.RECOVERY,
+    component: RecoverySetupPage,
+    protected: true,
+    title: "Social Recovery - Stellar Save",
+    description: "Configure guardians and approve recovery requests",
+  },
+  {
+    path: ROUTES.GOVERNANCE,
+    component: GovernancePage,
+    protected: false,
+    title: "Governance - Stellar Save",
+    description: "Protocol-level proposals: view, vote, and track timelock status",
   },
   {
     path: ROUTES.NOT_FOUND,

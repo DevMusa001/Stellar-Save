@@ -20,6 +20,27 @@ export const backupJobsTotal = new Counter({
   registers: [registry],
 });
 
+export const backupRestoreDrillsTotal = new Counter({
+  name: 'backup_restore_drills_total',
+  help: 'Total backup restore drill runs',
+  labelNames: ['status'],
+  registers: [registry],
+});
+
+export const backupRestoreDrillDuration = new Histogram({
+  name: 'backup_restore_drill_duration_seconds',
+  help: 'Duration of backup restore drills in seconds',
+  labelNames: ['status'],
+  buckets: [0.5, 1, 2, 5, 10, 30, 60, 120],
+  registers: [registry],
+});
+
+export const backupRestoreLastSuccessfulTimestamp = new Gauge({
+  name: 'stellar_save_last_successful_backup_restore_timestamp',
+  help: 'Unix timestamp of the last successful restore drill',
+  registers: [registry],
+});
+
 export const exportJobsTotal = new Counter({
   name: 'export_jobs_total',
   help: 'Total export jobs created',
@@ -97,6 +118,40 @@ export const eventsIndexedTotal = new Counter({
   name: 'events_indexed_total',
   help: 'Total contract events indexed',
   labelNames: ['event_type'],
+  registers: [registry],
+});
+
+// ── IPFS Metrics ──────────────────────────────────────────────────────────────
+export const ipfsPinsTotal = new Counter({
+  name: 'ipfs_pins_total',
+  help: 'Total IPFS pin operations',
+  labelNames: ['action', 'status'],
+  registers: [registry],
+});
+
+export const ipfsPinsActive = new Gauge({
+  name: 'ipfs_pins_active',
+  help: 'Number of active IPFS pins tracked',
+  registers: [registry],
+});
+
+export const ipfsQueueDepth = new Gauge({
+  name: 'ipfs_queue_depth',
+  help: 'Current IPFS pinning queue depth',
+  labelNames: ['state'],
+  registers: [registry],
+});
+
+export const ipfsNodeHealthy = new Gauge({
+  name: 'ipfs_node_healthy',
+  help: 'IPFS node health status (1 = healthy, 0 = unhealthy)',
+  registers: [registry],
+});
+
+export const ipfsAddDuration = new Histogram({
+  name: 'ipfs_add_duration_seconds',
+  help: 'Duration of IPFS add operations in seconds',
+  buckets: [0.1, 0.5, 1, 2, 5, 10, 30],
   registers: [registry],
 });
 

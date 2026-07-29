@@ -40,6 +40,10 @@ export { useTheme } from './useTheme';
 export type { ThemeMode } from './useTheme';
 export { usePayouts } from './usePayouts';
 
+export { useRamp, useRampTransactionPoller } from './useRamp';
+export { useKycStatus } from './useKyc';
+export { useBackendAuth } from './useBackendAuth';
+
 export { useEventService } from './useEventService';
 export type { UseEventServiceReturn } from './useEventService';
 
@@ -52,4 +56,8 @@ export type {
 } from './useActivityFeed';
 export { useDiscoveryFeed } from './useDiscoveryFeed';
 
-export { useOfflineSyncInit, useSyncStatus, useIsOnline, useQueueAction } from './useOfflineSync';
+export { useOfflineSyncInit, useSyncStatus, useIsOnline, useQueueAction } from './offline';
+
+// Badge system exports
+export { useMemberBadges } from './useMemberBadges';
+export type { MemberBadge, BadgeType, UseMemberBadgesReturn } from './useMemberBadges';

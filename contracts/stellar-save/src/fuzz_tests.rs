@@ -170,7 +170,9 @@ mod fuzz_tests {
             let admin = Address::generate(&env);
             let max = min.saturating_sub(delta);
             let cfg = ContractConfig {
-                admin,
+                admin: admin.clone(),
+                treasury: admin,
+                creation_fee: 0,
                 min_contribution: min,
                 max_contribution: max,
                 min_members: 2,
@@ -189,7 +191,9 @@ mod fuzz_tests {
             let env = Env::default();
             let admin = Address::generate(&env);
             let cfg = ContractConfig {
-                admin,
+                admin: admin.clone(),
+                treasury: admin,
+                creation_fee: 0,
                 min_contribution: 1,
                 max_contribution: 1_000_000,
                 min_members,
@@ -213,7 +217,9 @@ mod fuzz_tests {
             let env = Env::default();
             let admin = Address::generate(&env);
             let cfg = ContractConfig {
-                admin,
+                admin: admin.clone(),
+                treasury: admin,
+                creation_fee: 0,
                 min_contribution: min_contrib,
                 max_contribution: min_contrib.saturating_add(extra_contrib),
                 min_members,
@@ -231,7 +237,9 @@ mod fuzz_tests {
             let env = Env::default();
             let admin = Address::generate(&env);
             let cfg = ContractConfig {
-                admin,
+                admin: admin.clone(),
+                treasury: admin,
+                creation_fee: 0,
                 min_contribution: 0,
                 max_contribution: 1_000,
                 min_members: 2,

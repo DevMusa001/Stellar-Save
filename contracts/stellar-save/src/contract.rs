@@ -3,7 +3,7 @@
 //! All public methods delegate to the domain modules. This file is kept as
 //! a thin façade – no business logic should be added here.
 use core::cmp;
-use crate::contribution::ContributionRecord;
+use crate::contribution::{ContributionPage, ContributionRecord};
 use crate::error::StellarSaveError;
 use crate::events::EventEmitter;
 use crate::events::*;
@@ -16,10 +16,30 @@ use crate::refund::RefundRecord;
 use crate::search::{SearchParams, SearchResult};
 use crate::storage::{StorageKey, StorageKeyBuilder};
 use crate::types::{AssignmentMode, ContractConfig, MemberProfile, PayoutScheduleEntry};
-use soroban_sdk::{contractimpl, Address, Env, String, Symbol, Vec, Map, BytesN};
-use crate::StellarSaveContract;
+use soroban_sdk::{contract, contractimpl, Address, Env, String, Symbol, Vec, Map, BytesN};
+use crate::{governance, milestones, payout_executor, penalty, rating, refund, search, migration};
+
+#[contract]
+pub struct StellarSaveContract;
+
 #[contractimpl]
 impl StellarSaveContract {
+    /// Returns the current ledger timestamp as Unix epoch seconds.
+    ///
+    /// This is the canonical time source for all time-dependent logic in the
+    /// contract. It performs no storage reads or writes, does not check
+    /// authorization, and does not inspect pause state.
+    ///
+    /// Internal callers that currently call `env.ledger().timestamp()` inline
+    /// may delegate to this function to make the time source explicit and
+    /// auditable in one place.
+    ///
+    /// # Returns
+    /// The current ledger timestamp as `u64` (Unix epoch seconds).
+    pub fn get_current_timestamp(env: Env) -> u64 {
+        env.ledger().timestamp()
+    }
+
     /// Validates that a contribution amount matches the group's required contribution amount.
     ///
     /// This helper function ensures that members contribute the exact amount specified
@@ -291,6 +311,8 @@ impl StellarSaveContract {
     /// This can be used to check if migration is needed.
     pub fn get_storage_version(env: Env) -> u32 {
         migration::get_storage_version(&env)
+    }
+
     /// Updates the global contribution amount limits.
     ///
     /// Only the contract admin can call this function.
@@ -410,8 +432,9 @@ impl StellarSaveContract {
 
         // 7. Initialize Group Struct (using rounded amount)
         let current_time = env.ledger().timestamp();
-        let min_members = 2; // Default minimum members
+        let min_members = crate::constants::MIN_MEMBERS_FLOOR; // Default minimum members
         let mut new_group = Group::new(
+            &env,
             group_id,
             creator.clone(),
             rounded_amount,
@@ -794,8 +817,9 @@ impl StellarSaveContract {
             return Ok(false);
         }
 
-        // 3. Get pool information for current cycle
-        let pool_info = PoolCalculator::get_pool_info(&env, group_id, group.current_cycle)?;
+        // 3. Get pool information for current cycle (reuse already-loaded group,
+        // avoiding a redundant SLOAD of the group_data entry)
+        let pool_info = PoolCalculator::get_pool_info_for_group(&env, &group, group.current_cycle)?;
 
         // 4. Check if cycle is complete (all members contributed)
         if !pool_info.is_cycle_complete {
@@ -966,141 +990,7 @@ impl StellarSaveContract {
         group_id: u64,
         caller: Address,
     ) -> Result<(), StellarSaveError> {
-        caller.require_auth();
-
-        let group_key = StorageKeyBuilder::group_data(group_id);
-        let mut group = env
-            .storage()
-            .persistent()
-            .get::<_, Group>(&group_key)
-            .ok_or(StellarSaveError::GroupNotFound)?;
-
-        let status_key = StorageKeyBuilder::group_status(group_id);
-        let status: GroupStatus = env
-            .storage()
-            .persistent()
-            .get(&status_key)
-            .unwrap_or(GroupStatus::Pending);
-
-        match status {
-            GroupStatus::Cancelled | GroupStatus::Completed => {
-                return Err(StellarSaveError::GroupAlreadyDissolved);
-            }
-            GroupStatus::Active | GroupStatus::Paused => {}
-            GroupStatus::Pending => return Err(StellarSaveError::InvalidState),
-        }
-
-        let member_key = StorageKeyBuilder::member_profile(group_id, caller.clone());
-        if !env.storage().persistent().has(&member_key) {
-            return Err(StellarSaveError::NotMember);
-        }
-
-        let vote_key = StorageKeyBuilder::dissolve_vote(group_id, caller.clone());
-        if env.storage().persistent().has(&vote_key) {
-            return Err(StellarSaveError::AlreadyVotedDissolve);
-        }
-        env.storage().persistent().set(&vote_key, &true);
-
-        let count_key = StorageKeyBuilder::dissolve_vote_count(group_id);
-        let vote_count: u32 = env.storage().persistent().get(&count_key).unwrap_or(0);
-        let new_count = vote_count.checked_add(1).ok_or(StellarSaveError::Overflow)?;
-        env.storage().persistent().set(&count_key, &new_count);
-
-        // Not unanimous yet — nothing more to do
-        if new_count < group.member_count {
-            return Ok(());
-        }
-
-        // === Unanimous vote: dissolve the group ===
-        group.status = GroupStatus::Cancelled;
-        group.is_active = false;
-        env.storage().persistent().set(&group_key, &group);
-        env.storage()
-            .persistent()
-            .set(&status_key, &GroupStatus::Cancelled);
-
-        let token_config_key = StorageKeyBuilder::group_token_config(group_id);
-        let token_config: crate::group::TokenConfig = env
-            .storage()
-            .persistent()
-            .get(&token_config_key)
-            .ok_or(StellarSaveError::GroupNotFound)?;
-        let token_client =
-            soroban_sdk::token::TokenClient::new(&env, &token_config.token_address);
-
-        let current_cycle = group.current_cycle;
-        let now = env.ledger().timestamp();
-        let mut total_refunded: i128 = 0;
-
-        let members_key = StorageKeyBuilder::group_members(group_id);
-        let members: Map<u32, Address> = env
-            .storage()
-            .persistent()
-            .get(&members_key)
-            .unwrap_or(Map::new(&env));
-
-        for (_, member) in members.iter() {
-            // Skip members who already received their payout
-            let payout_pos_key =
-                StorageKeyBuilder::member_payout_eligibility(group_id, member.clone());
-            let payout_position: u32 =
-                match env.storage().persistent().get::<_, u32>(&payout_pos_key) {
-                    Some(pos) => pos,
-                    None => continue,
-                };
-
-            let recipient_key = StorageKeyBuilder::payout_recipient(group_id, payout_position);
-            let already_paid = env
-                .storage()
-                .persistent()
-                .get::<_, Address>(&recipient_key)
-                .map(|r| r == member)
-                .unwrap_or(false);
-
-            if already_paid {
-                continue;
-            }
-
-            // Refund current-cycle contribution if it exists and hasn't been refunded
-            let contrib_key = StorageKeyBuilder::contribution_individual(
-                group_id,
-                current_cycle,
-                member.clone(),
-            );
-            let refund_amount: i128 = match env
-                .storage()
-                .persistent()
-                .get::<_, crate::contribution::ContributionRecord>(&contrib_key)
-            {
-                Some(record) => record.amount,
-                None => continue,
-            };
-
-            let refund_key =
-                StorageKeyBuilder::refund_record(group_id, current_cycle, member.clone());
-            if env.storage().persistent().has(&refund_key) {
-                continue;
-            }
-
-            token_client.transfer(&env.current_contract_address(), &member, &refund_amount);
-
-            let refund_record = crate::refund::RefundRecord {
-                group_id,
-                member: member.clone(),
-                cycle: current_cycle,
-                amount: refund_amount,
-                refunded_at: now,
-            };
-            env.storage().persistent().set(&refund_key, &refund_record);
-
-            EventEmitter::emit_refund_issued(&env, group_id, member, refund_amount, current_cycle, now);
-
-            total_refunded = total_refunded.saturating_add(refund_amount);
-        }
-
-        EventEmitter::emit_group_dissolved(&env, group_id, now, total_refunded);
-
-        Ok(())
+        governance::vote_dissolve(env, group_id, caller)
     }
 }
 
@@ -1610,124 +1500,7 @@ impl StellarSaveContract {
     ///
     /// # Security Features
     /// - Caller must be the contract itself (internal-only)
-    /// - Recipient address validation
-    /// - Reentrancy protection using storage flags
-    /// - Comprehensive error handling
-    /// - Atomic operations with proper rollback
-    fn transfer_payout(
-        env: Env,
-        group_id: u64,
-        recipient: Address,
-        amount: i128,
-        cycle_number: u32,
-    ) -> Result<(), StellarSaveError> {
-        // 1. Recipient address is validated by require_auth upstream
 
-        // 2. Reentrancy protection - set transfer in progress flag
-        let reentrancy_key = StorageKeyBuilder::reentrancy_guard();
-        let guard_value: u64 = env.storage().persistent().get(&reentrancy_key).unwrap_or(0);
-
-        if guard_value != 0 {
-            // Non-zero value indicates operation in progress
-            return Err(StellarSaveError::InternalError);
-        }
-
-        // Set reentrancy protection flag
-        env.storage().persistent().set(&reentrancy_key, &1);
-
-        // 3. Validate group exists and is in correct state
-        let group_key = StorageKeyBuilder::group_data(group_id);
-        let group = env
-            .storage()
-            .persistent()
-            .get::<_, Group>(&group_key)
-            .ok_or(StellarSaveError::GroupNotFound)?;
-
-        if group.status != GroupStatus::Active {
-            // Clear reentrancy flag before returning error
-            env.storage().persistent().set(&reentrancy_key, &0);
-            return Err(StellarSaveError::InvalidState);
-        }
-
-        // 4. Validate recipient is eligible for this cycle
-        let is_eligible =
-            Self::validate_payout_recipient(env.clone(), group_id, recipient.clone())?;
-
-        if !is_eligible {
-            // Clear reentrancy flag before returning error
-            env.storage().persistent().set(&reentrancy_key, &0);
-            return Err(StellarSaveError::InvalidRecipient);
-        }
-
-        // 5. Validate amount matches expected pool amount
-        let expected_amount = group
-            .contribution_amount
-            .checked_mul(group.member_count as i128)
-            .ok_or(StellarSaveError::Overflow)?;
-
-        if amount != expected_amount {
-            // Clear reentrancy flag before returning error
-            env.storage().persistent().set(&reentrancy_key, &0);
-            return Err(StellarSaveError::InvalidAmount);
-        }
-
-        // 6. Check if payout already processed for this cycle
-        let recipient_key = StorageKeyBuilder::payout_recipient(group_id, cycle_number);
-        if env.storage().persistent().has(&recipient_key) {
-            // Clear reentrancy flag before returning error
-            env.storage().persistent().set(&reentrancy_key, &0);
-            return Err(StellarSaveError::PayoutAlreadyProcessed);
-        }
-
-        // 7. Execute the transfer (for XLM, this is a native transfer)
-        // In Soroban, native XLM transfers are handled through the contract's internal accounting
-        // The actual token movement would be handled by the contract's balance management
-
-        // For now, we'll simulate the transfer by recording it and emitting an event
-        // In a full implementation, you would:
-        // - Use token contracts for non-native assets
-        // - Implement proper balance tracking
-        // - Handle transfer failures gracefully
-
-        // 8. Record the payout
-        let timestamp = env.ledger().timestamp(); // cache — single ledger call
-        let payout_record =
-            PayoutRecord::new(recipient.clone(), group_id, cycle_number, amount, timestamp);
-
-        // Store payout record
-        let payout_key = StorageKeyBuilder::payout_record(group_id, cycle_number);
-        env.storage().persistent().set(&payout_key, &payout_record);
-
-        // Store recipient for quick lookup
-        env.storage().persistent().set(&recipient_key, &recipient);
-
-        // 9. Store payout status as processed
-        let status_key = StorageKeyBuilder::payout_status(group_id, cycle_number);
-        env.storage().persistent().set(&status_key, &true);
-
-        // 10. Gas opt: update incremental paid-out counter (avoids O(n) loop in get_total_paid_out)
-        let paid_out_key = StorageKeyBuilder::group_total_paid_out(group_id);
-        let current_paid: i128 = env.storage().persistent().get(&paid_out_key).unwrap_or(0);
-        let new_paid = current_paid
-            .checked_add(amount)
-            .ok_or(StellarSaveError::Overflow)?;
-        env.storage().persistent().set(&paid_out_key, &new_paid);
-
-        // 11. Clear reentrancy protection flag
-        env.storage().persistent().set(&reentrancy_key, &0u64);
-
-        // 12. Emit payout event
-        EventEmitter::emit_payout_executed(
-            &env,
-            group_id,
-            recipient,
-            amount,
-            cycle_number,
-            timestamp,
-        );
-
-        Ok(())
-    }
 
     /// Randomizes payout order for a group and stores the resulting ordered address sequence.
     ///
@@ -1883,7 +1656,7 @@ impl StellarSaveContract {
         let mut defaulted = false;
 
         // 5. Check if cycle is complete (all contributions received)
-        let cycle_complete = Self::is_cycle_complete(env.clone(), group_id)?;
+        let cycle_complete = Self::is_cycle_complete(env.clone(), group_id, group.current_cycle)?;
         
         if cycle_complete {
             // 5a. Execute payout if cycle is complete
@@ -1931,6 +1704,10 @@ impl StellarSaveContract {
                 current_time,
             );
         }
+
+        Ok(())
+    }
+
     /// Submits a bid for the current payout cycle in a `Bid`-order group.
     ///
     /// The member with the highest bid at payout time wins the cycle payout.
@@ -2584,6 +2361,7 @@ impl StellarSaveContract {
         let new_min_members = group1.min_members.min(group2.min_members);
 
         let mut merged_group = Group::new(
+            &env,
             merged_id,
             group1.creator.clone(),
             group1.contribution_amount,
@@ -2937,7 +2715,7 @@ impl StellarSaveContract {
         // Here we go backwards from the cursor to show newest groups first
         let start = if cursor == 0 { current_max_id } else { cursor };
         let mut count = 0;
-        let page_limit = if limit > 50 { 50 } else { limit }; // Safety cap for gas
+        let page_limit = if limit > crate::constants::MAX_GROUPS_PER_PAGE { crate::constants::MAX_GROUPS_PER_PAGE } else { limit }; // Safety cap for gas
 
         for id in (1..=start).rev() {
             if count >= page_limit {
@@ -3075,7 +2853,7 @@ impl StellarSaveContract {
         let current_max_id: u64 = env.storage().persistent().get(&max_id_key).unwrap_or(0);
         let start = if cursor == 0 { current_max_id } else { cursor };
         let mut count = 0;
-        let page_limit = if limit > 50 { 50 } else { limit }; // Safety cap for gas
+        let page_limit = if limit > crate::constants::MAX_GROUPS_PER_PAGE { crate::constants::MAX_GROUPS_PER_PAGE } else { limit }; // Safety cap for gas
 
         for id in (1..=start).rev() {
             if count >= page_limit {
@@ -3199,10 +2977,8 @@ impl StellarSaveContract {
     /// 2. Create a token client for the native asset
     /// 3. Query the balance for this contract's address
     pub fn get_contract_balance(_env: Env) -> i128 {
-        // Placeholder: Return 0
-        // In production, query the native token contract:
-        // let native_token = token::Client::new(&env, &native_token_address);
-        // native_token.balance(&env.current_contract_address())
+        // Placeholder: returns 0 until a token contract address is provided.
+        // See token.rs for the token::Client helper that will power this.
         0
     }
 
@@ -3314,9 +3090,9 @@ impl StellarSaveContract {
             .get::<_, Group>(&group_key)
             .ok_or(StellarSaveError::GroupNotFound)?;
 
-        // 2. Cap limit at 50 for gas optimization
-        let page_limit = if limit > 50 {
-            50
+        // 2. Cap limit at MAX_CONTRIBUTION_HISTORY_PER_PAGE for gas optimization
+        let page_limit = if limit > crate::constants::MAX_CONTRIBUTION_HISTORY_PER_PAGE {
+            crate::constants::MAX_CONTRIBUTION_HISTORY_PER_PAGE
         } else if limit == 0 {
             10
         } else {
@@ -3756,20 +3532,6 @@ impl StellarSaveContract {
                 .get::<_, ContributionRecord>(&contrib_key)
                 .is_some();
 
-        // Update user member groups index
-        let user_groups_key = StorageKeyBuilder::user_member_groups(member.clone());
-        let mut user_groups: Vec<u64> = env
-            .storage()
-            .persistent()
-            .get(&user_groups_key)
-            .unwrap_or(Vec::new(&env));
-        user_groups.push_back(group_id);
-        env.storage()
-            .persistent()
-            .set(&user_groups_key, &user_groups);
-
-        // Emit event
-        EventEmitter::emit_member_joined(&env, group_id, member, group.member_count, timestamp);
             if !has_contributed {
                 members_needing_reminder.push_back(member.clone());
             }
@@ -4121,7 +3883,7 @@ impl StellarSaveContract {
             .unwrap_or(group.started_at);
 
         let inactive_duration = current_time.saturating_sub(last_activity_time);
-        let emergency_threshold = group.cycle_duration.saturating_mul(2);
+        let emergency_threshold = group.cycle_duration.saturating_mul(crate::constants::EMERGENCY_WITHDRAW_INACTIVE_CYCLES);
 
         if inactive_duration < emergency_threshold {
             return Err(StellarSaveError::InvalidState);
@@ -4325,7 +4087,7 @@ impl StellarSaveContract {
         }
 
         // 4. Apply pagination (cap limit at 100 for gas safety)
-        let page_limit = cmp::min(limit, 100);
+        let page_limit = cmp::min(limit, crate::constants::MAX_MEMBERS_PER_PAGE);
         let total_members = all_members.len();
 
         // If offset is beyond total members, return empty vector
@@ -4496,45 +4258,7 @@ impl StellarSaveContract {
     /// - Recording the recipient for the specific cycle (used for fast lookups)
     /// - Updating the payout status for the cycle
     ///
-    /// # Arguments
-    /// * `env` - Soroban environment for storage access
-    /// * `group_id` - ID of the group making the payout
-    /// * `cycle_number` - The cycle number for this payout
-    /// * `recipient` - Address of the member receiving the payout
-    /// * `amount` - Payout amount in stroops
-    /// * `timestamp` - Timestamp when the payout was executed
-    fn record_payout(
-        env: &Env,
-        group_id: u64,
-        cycle_number: u32,
-        recipient: Address,
-        amount: i128,
-        timestamp: u64,
-    ) -> Result<(), StellarSaveError> {
-        let record_key = StorageKeyBuilder::payout_record(group_id, cycle_number);
 
-        // 1. Check if payout was already recorded to prevent overwriting/double payouts
-        if env.storage().persistent().has(&record_key) {
-            return Err(StellarSaveError::InvalidState);
-        }
-
-        // 2. Create the PayoutRecord
-        let payout =
-            PayoutRecord::new(recipient.clone(), group_id, cycle_number, amount, timestamp);
-
-        // 3. Store the full record with proper key
-        env.storage().persistent().set(&record_key, &payout);
-
-        // 4. Store the recipient explicitly for quick `has_received_payout` lookups
-        let recipient_key = StorageKeyBuilder::payout_recipient(group_id, cycle_number);
-        env.storage().persistent().set(&recipient_key, &recipient);
-
-        // 5. Update the payout status to true/completed for this cycle
-        let status_key = StorageKeyBuilder::payout_status(group_id, cycle_number);
-        env.storage().persistent().set(&status_key, &true);
-
-        Ok(())
-    }
 
     /// Records a member's contribution for the current cycle of a group.
     ///
@@ -5323,46 +5047,7 @@ impl StellarSaveContract {
         group_id: u64,
         new_amount: i128,
     ) -> Result<(), StellarSaveError> {
-        let group_key = StorageKeyBuilder::group_data(group_id);
-        let group = env
-            .storage()
-            .persistent()
-            .get::<_, Group>(&group_key)
-            .ok_or(StellarSaveError::GroupNotFound)?;
-
-        group.creator.require_auth();
-
-        if !group.allow_dynamic_contributions {
-            return Err(StellarSaveError::InvalidState);
-        }
-
-        if group.status != GroupStatus::Active {
-            return Err(StellarSaveError::InvalidState);
-        }
-
-        if new_amount <= 0 {
-            return Err(StellarSaveError::InvalidAmount);
-        }
-
-        // Store the proposal and reset votes
-        let proposal_key = StorageKeyBuilder::contribution_pending_amount(group_id);
-        env.storage().persistent().set(&proposal_key, &new_amount);
-
-        let vote_key = StorageKeyBuilder::contribution_amount_vote_count(group_id);
-        env.storage().persistent().set(&vote_key, &0u32);
-
-        // Emit event
-        let timestamp = env.ledger().timestamp();
-        EventEmitter::emit_contribution_amount_proposed(
-            &env,
-            group_id,
-            group.creator.clone(),
-            group.contribution_amount,
-            new_amount,
-            timestamp,
-        );
-
-        Ok(())
+        governance::propose_contribution_change(env, group_id, new_amount)
     }
 
     /// Casts a member's vote to approve the pending contribution amount change.
@@ -5372,71 +5057,7 @@ impl StellarSaveContract {
         group_id: u64,
         member: Address,
     ) -> Result<(), StellarSaveError> {
-        member.require_auth();
-
-        let group_key = StorageKeyBuilder::group_data(group_id);
-        let mut group = env
-            .storage()
-            .persistent()
-            .get::<_, Group>(&group_key)
-            .ok_or(StellarSaveError::GroupNotFound)?;
-
-        if !group.allow_dynamic_contributions {
-            return Err(StellarSaveError::InvalidState);
-        }
-
-        // Verify member belongs to the group
-        let member_key = StorageKeyBuilder::member_profile(group_id, member.clone());
-        if !env.storage().persistent().has(&member_key) {
-            return Err(StellarSaveError::NotMember);
-        }
-
-        // Check there is a pending proposal
-        let proposal_key = StorageKeyBuilder::contribution_pending_amount(group_id);
-        let new_amount: i128 = env
-            .storage()
-            .persistent()
-            .get(&proposal_key)
-            .ok_or(StellarSaveError::InvalidState)?;
-
-        // Prevent double voting
-        let member_vote_key = StorageKeyBuilder::contribution_member_vote(group_id, member.clone());
-        if env.storage().persistent().has(&member_vote_key) {
-            return Err(StellarSaveError::AlreadyContributed);
-        }
-        env.storage().persistent().set(&member_vote_key, &true);
-
-        // Increment vote count
-        let vote_key = StorageKeyBuilder::contribution_amount_vote_count(group_id);
-        let vote_count: u32 = env.storage().persistent().get(&vote_key).unwrap_or(0);
-        let new_vote_count = vote_count
-            .checked_add(1)
-            .ok_or(StellarSaveError::Overflow)?;
-        env.storage().persistent().set(&vote_key, &new_vote_count);
-
-        // Apply change if majority reached (> 50% of members)
-        let majority = group.member_count / 2 + 1;
-        if new_vote_count >= majority {
-            let old_amount = group.contribution_amount;
-            group.contribution_amount = new_amount;
-            env.storage().persistent().set(&group_key, &group);
-
-            // Clear proposal and votes
-            env.storage().persistent().remove(&proposal_key);
-            env.storage().persistent().remove(&vote_key);
-
-            let timestamp = env.ledger().timestamp();
-            EventEmitter::emit_contribution_amount_changed(
-                &env,
-                group_id,
-                old_amount,
-                new_amount,
-                group.current_cycle + 1,
-                timestamp,
-            );
-        }
-
-        Ok(())
+        governance::vote_contribution_change(env, group_id, member)
     }
 
     // =========================================================================

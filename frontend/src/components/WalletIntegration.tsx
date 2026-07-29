@@ -136,7 +136,7 @@ function ConnectedPanel({ address, network, onDisconnect, onSwitchAccount, conne
                   gap: 1,
                 }}
               >
-                {acc === address && <span style={{ color: 'var(--mui-palette-primary-main, #1976d2)', fontSize: 14 }}>✓</span>}
+                {acc === address && <span style={{ color: 'var(--color-primary)', fontSize: 14 }}>✓</span>}
                 <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
                   {acc.slice(0, 8)}…{acc.slice(-6)}
                 </Typography>
@@ -197,7 +197,7 @@ export function WalletIntegration() {
           <StatusDot status={status} />
           {error && (
             <Tooltip title={error}>
-              <span style={{ color: '#ef4444', fontSize: 16 }} aria-label="Wallet error">⚠</span>
+              <span style={{ color: 'var(--color-danger)', fontSize: 16 }} aria-label="Wallet error">⚠</span>
             </Tooltip>
           )}
           <Button

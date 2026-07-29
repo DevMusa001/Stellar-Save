@@ -3,13 +3,22 @@ import { PrismaClient } from './generated/prisma/client';
 import { WebPushService } from './web_push_service';
 import { eventsIndexedTotal, sorobanRpcCallsTotal } from './metrics';
 import { GroupStateCache, isStateMutatingEvent } from './lib/cache';
+import { CONTRACT_EVENT_TOPICS } from '../../packages/events-schema/generated/events';
+import { fetchWithCorrelationId } from './lib/http';
 
-// Event types emitted by the Stellar savings contract
-const PAYOUT_EVENT_TYPES = ['payout', 'payout_received', 'payoutreceived', 'payout_processed'];
-const MISSED_CONTRIBUTION_TYPES = ['missed_contribution', 'missedcontribution', 'contribution_missed', 'missed'];
+// Typed topic constants — must exist in the canonical schema
+const PAYOUT_EVENT_TYPES: string[] = ['payout_executed'];
+const MISSED_CONTRIBUTION_TYPES: string[] = ['contribution_missed'];
+
+// Fail fast if topics drift from the canonical schema
+const unknownTopics = [...PAYOUT_EVENT_TYPES, ...MISSED_CONTRIBUTION_TYPES]
+  .filter(t => !CONTRACT_EVENT_TOPICS.includes(t as any));
+if (unknownTopics.length) {
+  throw new Error(`[contract_event_indexer] Unknown event topics: ${unknownTopics.join(', ')}`);
+}
 
 function isPayout(eventType: string): boolean {
-  return PAYOUT_EVENT_TYPES.includes(eventType.toLowerCase().replace(/-/g, '_'));
+  return PAYOUT_EVENT_TYPES.includes(eventType);
 }
 
 function isMissedContribution(eventType: string): boolean {
@@ -141,7 +150,7 @@ export class ContractEventIndexer {
           url.searchParams.set('order', 'asc');
           url.searchParams.set('limit', String(PAGE_LIMIT));
 
-          const response = await fetch(url.toString());
+          const response = await fetchWithCorrelationId(url.toString());
           sorobanRpcCallsTotal.inc({ method: 'getEvents', status: response.ok ? 'success' : 'error' });
           if (!response.ok) {
             throw new Error(`HTTP ${response.status} from ${url}`);

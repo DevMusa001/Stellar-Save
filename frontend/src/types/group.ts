@@ -1,6 +1,9 @@
-import type { FilterState, SortOption } from '../components/GroupFilters';
+// Re-export shared primitives from the canonical SDK package so there is a
+// single source of truth for these types across frontend, backend, and mobile.
+export type { GroupStatus, PaginationMeta } from '@stellar-save/sdk';
 
-export type GroupStatus = 'active' | 'completed' | 'pending';
+import type { FilterState, SortOption } from '../components/GroupFilters';
+import type { GroupStatus, PaginationMeta } from '@stellar-save/sdk';
 
 export interface PublicGroup {
   id: string;
@@ -21,15 +24,6 @@ export interface PublicGroup {
 export interface PaginationState {
   page: number;
   pageSize: number;
-}
-
-export interface PaginationMeta {
-  page: number;
-  pageSize: number;
-  totalItems: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
 }
 
 // ─── Filters ──────────────────────────────────────────────────────────────────
@@ -75,18 +69,9 @@ export interface GroupDetail extends PublicGroup {
   startedAt: Date | null;
 }
 
-// ─── useGroup return type ─────────────────────────────────────────────────────
-
-export interface UseGroupReturn {
-  /** Full group detail, null while loading or on error */
-  group: GroupDetail | null;
-  /** True during the initial fetch or a manual refresh */
-  isLoading: boolean;
-  /** Error message, null when no error */
-  error: string | null;
-  /** Manually re-fetch (busts cache) */
-  refresh: () => void;
-}
+// Note: the `useGroup()` hook's return type (`UseGroupReturn`) lives in
+// `hooks/useGroup.ts` since it wraps `DetailedGroup` (members/contributions/
+// cycles) from `utils/groupApi`, not the lighter-weight `GroupDetail` above.
 
 // ─── Hook return type ─────────────────────────────────────────────────────────
 

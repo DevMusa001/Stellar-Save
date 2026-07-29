@@ -25,9 +25,14 @@ export const ROUTES = {
   ANALYTICS: "/analytics",
   PLATFORM_ANALYTICS: "/platform-analytics",
   TRANSACTIONS: "/transactions",
+  TRANSACTION_BUILDER: "/transactions/builder",
+  HARDWARE_WALLET: "/hardware-wallet",
   MEMBER_PROFILE: "/members/:address",
   ABOUT: "/about",
   FEEDBACK_ADMIN: "/admin/feedback",
+  ADMIN_DASHBOARD: "/admin/dashboard",
+  RECOVERY: "/settings/recovery",
+  GOVERNANCE: "/governance",
   NOT_FOUND: "/404",
   ERROR: "/500",
 } as const;
@@ -48,4 +53,6 @@ export const buildRoute = {
   groupJoin: (inviteCode: string) => `/join/${inviteCode}`,
   appDownload: (inviteCode: string) => `/app/${inviteCode}`,
   memberProfile: (address: string) => `/members/${address}`,
+  deposit: () => `/ramp/deposit`,
+  withdraw: () => `/ramp/withdraw`,
 } as const;

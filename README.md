@@ -54,90 +54,45 @@ For detailed architecture documentation, see [docs/architecture.md](docs/archite
 - **Token Ready**: Architecture supports custom Stellar tokens (roadmap item)
 - **Transparent**: All contributions and payouts are verifiable on-chain
 
-## 🛠️ Quick Start
+## 🛠️ Quick Start & Workspace Guides
 
-### Prerequisites
+To get started quickly, follow the dedicated setup guides for each component of the Stellar-Save monorepo:
 
-- [Rust](https://www.rust-lang.org/tools/install) (1.70+)
-- [Soroban CLI](https://soroban.stellar.org/docs/getting-started/setup)
-- [Stellar CLI](https://developers.stellar.org/docs/tools/stellar-cli)
+- 🚀 **Smart Contracts**: See [contracts/stellar-save/src/lib.rs](contracts/stellar-save/src/lib.rs) and the [QUICK_REFERENCE.md](QUICK_REFERENCE.md) for smart contract API documentation.
+- 💻 **Frontend Web App**: See [frontend/README.md](frontend/README.md) for React/TypeScript setup, environment configuration (`VITE_*`), MUI theme tokens, and local development commands.
+- 📱 **Mobile Application**: See [mobile/README.md](mobile/README.md) for Expo React Native setup, iOS/Android emulator instructions, and mobile architecture.
+- 🛠️ **Scripts & Tooling**: See [scripts/README.md](scripts/README.md) for build (`build.sh`), test (`test.sh`), and deployment (`deploy_testnet.sh`, `deploy_mainnet.sh`) scripts.
+- ⚙️ **Backend Service**: See [backend/README.md](backend/README.md) for server setup, environment variables schema, and indexer configuration.
 
-### Build
+### Common Development Commands
 
 ```bash
+# Clone the repository
+git clone https://github.com/Xoulomon/Stellar-Save.git
+cd Stellar-Save
+
+# Install root dependencies & git hooks
+npm install
+
+# Build Soroban smart contracts
 ./scripts/build.sh
-```
 
-### Test
-
-```bash
+# Run all test suites across smart contracts and web frontend
 ./scripts/test.sh
-```
-
-### Setup Environment
-
-1. Copy the example environment file:
-```bash
-cp .env.example .env
-```
-
-2. Fill in the values for your environment. The backend validates all variables at startup using a [zod](https://zod.dev) schema in `backend/src/config.ts`. If a required variable is missing or malformed the server exits immediately with a descriptive error.
-
-**Backend variables** (all have sensible defaults for local development):
-
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `NODE_ENV` | no | `development` | `development` / `test` / `production` |
-| `PORT` | no | `3001` | API server port |
-| `ADMIN_SECRET` | **yes (prod)** | `super-secret-admin-key` | `x-admin-secret` header value |
-| `STELLAR_NETWORK` | no | `testnet` | `testnet` / `mainnet` / `futurenet` / `standalone` |
-| `STELLAR_RPC_URL` | no | testnet RPC | Soroban RPC endpoint |
-| `STELLAR_NETWORK_PASSPHRASE` | no | testnet passphrase | Stellar network passphrase |
-| `BACKUP_ENABLED` | no | `false` | Enable backup scheduler & monitor |
-| `BACKUP_S3_BUCKET` | no | `stellar-save-backups` | S3 bucket for backups |
-| `BACKUP_RETENTION_DAYS` | no | `30` | Days to keep backups |
-| `BACKUP_ALERT_WEBHOOK_URL` | no | — | Webhook for backup alerts |
-| `AWS_REGION` | no | `us-east-1` | AWS region (needed when backup enabled) |
-| `AWS_ACCESS_KEY_ID` | no | — | AWS credentials (needed when backup enabled) |
-| `AWS_SECRET_ACCESS_KEY` | no | — | AWS credentials (needed when backup enabled) |
-| `ELASTICSEARCH_NODE` | no | `http://localhost:9200` | Elasticsearch endpoint |
-| `ELASTICSEARCH_USERNAME` | no | `elastic` | Elasticsearch username |
-| `ELASTICSEARCH_PASSWORD` | no | `changeme` | Elasticsearch password |
-
-**Frontend variables** (prefixed `VITE_`, exposed to the browser — no secrets):
-
-```bash
-VITE_STELLAR_NETWORK=testnet
-VITE_STELLAR_RPC_URL=https://soroban-testnet.stellar.org
-VITE_CONTRACT_GUESS_THE_NUMBER=<your-contract-id>
-VITE_CONTRACT_FUNGIBLE_ALLOWLIST=<your-contract-id>
-VITE_CONTRACT_NFT_ENUMERABLE=<your-contract-id>
-```
-
-3. Network configurations are defined in `environments.toml`:
-   - `testnet` - Stellar testnet
-   - `mainnet` - Stellar mainnet
-   - `futurenet` - Stellar futurenet
-   - `standalone` - Local development
-
-### Deploy to Testnet
-
-```bash
-# Configure your testnet identity first
-stellar keys generate deployer --network testnet
-
-# Deploy
-./scripts/deploy_testnet.sh
 ```
 
 ### Run Demo
 
-Follow the step-by-step guide in [demo/demo-script.md](demo/demo-script.md)
+Follow the step-by-step guide in [demo/demo-script.md](demo/demo-script.md).
 
 ## 📖 Documentation
 
+- [Local Development Setup](docs/local-development-setup.md) — clone-to-running-app guide for backend, frontend, contracts, and mobile
 - [User Guide](docs/user-guide.md)
 - [Architecture Overview](docs/architecture.md)
+- [Public API Reference](docs/api/interactive-api-reference.md) — REST API with code examples
+- [Interactive API Docs](https://api.stellar-save.app/docs) — Try API calls in your browser
+- [Governance Process](docs/governance.md) — How protocol decisions are made on-chain
 - [Storage Layout](docs/storage-layout.md)
 - [Threat Model & Security](docs/threat-model.md)
 - [Performance Optimization Guide](docs/performance-optimization.md)
@@ -147,6 +102,11 @@ Follow the step-by-step guide in [demo/demo-script.md](demo/demo-script.md)
 - [Mobile App Developer & Contributor Guide](docs/mobile-app-developer-guide.md)
 - [Troubleshooting Guide](docs/troubleshooting.md)
 - [Synthetic Monitoring / Uptime Canaries](docs/synthetic-monitoring.md)
+- [Observability Guide](docs/observability.md)
+- [Funnel & Cohort Analytics](docs/funnel-analytics.md)
+- [Design Token System](docs/design-tokens.md)
+- [ZK Verification](docs/zk-verification.md)
+- [Security Guide](docs/security-guide.md)
 
 ## 🎓 Smart Contract API
 

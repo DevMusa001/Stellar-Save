@@ -2,6 +2,8 @@
 
 Native iOS and Android applications built with Capacitor, wrapping the Stellar Save web application.
 
+**Last verified:** July 28, 2026
+
 ## Quick Start
 
 ### Prerequisites
@@ -81,7 +83,7 @@ Automated builds and distribution are handled by GitHub Actions:
 - **mobile.yml**: CI on every PR (lint, test, build)
 - **mobile-release.yml**: Manual release to TestFlight and Play Console
 
-See [docs/mobile-cicd-setup.md](../docs/mobile-cicd-setup.md) for complete setup guide.
+See [docs/mobile-cicd-setup.md](../../docs/mobile-cicd-setup.md) for complete setup guide.
 
 ## Configuration
 
@@ -176,12 +178,56 @@ npm run build
 npx cap sync
 ```
 
-## Resources
+## Accessibility
+
+Stellar Save is designed to be fully accessible with screen readers from the start. This section documents the accessibility conventions for the mobile apps.
+
+### Screen Reader Support
+
+The mobile apps use VoiceOver (iOS) and TalkBack (Android) to provide accessible navigation. All interactive elements must have accessible labels.
+
+### Web Components (Capacitor WebView)
+
+Since the mobile apps wrap the web application in a Capacitor WebView, web accessibility standards apply:
+
+- **Buttons**: All `<button>` elements must have an `aria-label` or visible text content
+- **Links**: All `<a>` elements must have descriptive text or `aria-label`
+- **Images**: All `<img>` elements must have an `alt` attribute
+- **Form inputs**: All inputs must have an associated `<label>` or `aria-label`
+- **Modals**: Must have `role="dialog"`, `aria-modal="true"`, and `aria-labelledby`
+- **Interactive divs**: Any `<div>` with `onClick` must have `role="button"`, `tabIndex={0}`, and `aria-label`
+
+### React Component Conventions
+
+When creating new React components:
+
+1. **Use semantic HTML**: `<button>` for actions, `<a>` for navigation, `<input>` with `<label>` for forms
+2. **ARIA labels**: Always provide `aria-label` for icon-only buttons
+3. **Keyboard navigation**: Ensure all interactive elements are focusable and respond to Enter/Space
+4. **Focus management**: Modals should trap focus and return focus on close
+5. **Live regions**: Use `aria-live="polite"` for status updates and `aria-live="assertive"` for errors
+6. **Roles**: Use appropriate ARIA roles (`tablist`, `tab`, `tabpanel`, `dialog`, `alert`, etc.)
+
+### Testing
+
+Before submitting a PR:
+
+1. Run `npm run test:a11y` to run automated accessibility tests
+2. Test on a real device with VoiceOver (iOS) or TalkBack (Android)
+3. Verify all interactive elements are announced correctly
+4. Verify logical focus order when swiping through screens
+
+### Known Issues
+
+See [`ACCESSIBILITY.md`](../../ACCESSIBILITY.md) in the project root for the full list of known accessibility issues and their status.
+
+### Resources
 
 - [Capacitor Documentation](https://capacitorjs.com/docs)
 - [iOS Development Guide](https://developer.apple.com/documentation/)
 - [Android Development Guide](https://developer.android.com/guide)
 - [Fastlane Documentation](https://docs.fastlane.tools)
+- [WCAG 2.1 Quick Reference](https://www.w3.org/WAI/WCAG21/quickref/)
 
 ## Support
 

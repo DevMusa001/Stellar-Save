@@ -15,6 +15,7 @@ import { Request, Response, NextFunction } from 'express';
 import { logger } from './logger';
 import { Counter } from 'prom-client';
 import { registry } from './metrics';
+import { config } from './config';
 
 // ── Metrics ───────────────────────────────────────────────────────────────────
 
@@ -247,10 +248,9 @@ export function rampCaptchaGate() {
  * already been used (replay protection).
  */
 async function verifyCaptchaToken(token: string, _remoteIp: string): Promise<boolean> {
-  const secret = process.env.CAPTCHA_SECRET_KEY;
+  const secret = config.captcha.secretKey;
   if (!secret) {
-    // No provider configured — allow in development, block in production
-    if (process.env.NODE_ENV === 'production') {
+    if (config.nodeEnv === 'production') {
       logger.error('[fiat-ramp] CAPTCHA_SECRET_KEY not set in production');
       return false;
     }
@@ -258,16 +258,8 @@ async function verifyCaptchaToken(token: string, _remoteIp: string): Promise<boo
     return true;
   }
 
-  // Stub: replace with real HTTP call to your CAPTCHA provider
-  // Example for hCaptcha:
-  // const resp = await fetch('https://hcaptcha.com/siteverify', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-  //   body: `secret=${encodeURIComponent(secret)}&response=${encodeURIComponent(token)}&remoteip=${encodeURIComponent(_remoteIp)}`,
-  // });
-  // const json = await resp.json();
-  // return json.success === true;
-
+  // Stub: replace with real HTTP call to your CAPTCHA provider once a
+  // provider is chosen (hCaptcha, reCAPTCHA, Turnstile, etc.).
   return typeof token === 'string' && token.length > 0;
 }
 

@@ -17,6 +17,7 @@
 //! The design follows a permissionless execution model where any address can trigger
 //! payout execution once preconditions are met.
 
+use crate::auth::is_active_member;
 use crate::error::StellarSaveError;
 use crate::events::EventEmitter;
 use crate::group::{Group, GroupStatus};
@@ -50,11 +51,12 @@ use soroban_sdk::{Address, Env};
 /// Validates Requirements 1.1, 1.2, 1.3, 1.4, 1.5
 fn validate_cycle_complete(
     env: &Env,
-    group_id: u64,
+    group: &Group,
     current_cycle: u32,
 ) -> Result<crate::pool::PoolInfo, StellarSaveError> {
-    // Call PoolCalculator to retrieve comprehensive cycle data
-    let pool_info = PoolCalculator::get_pool_info(env, group_id, current_cycle)?;
+    // Reuse the already-loaded group instead of re-reading it from storage,
+    // avoiding a redundant SLOAD of the group_data entry within this invocation.
+    let pool_info = PoolCalculator::get_pool_info_for_group(env, group, current_cycle)?;
 
     // Validate that the pool is ready for payout
     // This checks:
@@ -253,8 +255,7 @@ fn verify_recipient_eligibility(
     current_cycle: u32,
 ) -> Result<(), StellarSaveError> {
     // Check 1: Verify recipient is a current member of the group
-    let member_key = StorageKeyBuilder::member_profile(group_id, recipient.clone());
-    if !env.storage().persistent().has(&member_key) {
+    if !is_active_member(env, group_id, recipient) {
         return Err(StellarSaveError::NotMember);
     }
 
@@ -647,7 +648,16 @@ fn advance_cycle_or_complete(env: &Env, group: &mut Group) -> Result<(), Stellar
     // Emit CycleAdvanced event (only when group is not yet complete)
     if !group.is_complete() {
         let timestamp = env.ledger().timestamp();
-        EventEmitter::emit_cycle_advanced(env, group.id, group.current_cycle, timestamp);
+        let old_cycle = group.current_cycle.saturating_sub(1);
+        EventEmitter::emit_cycle_advanced(
+            env,
+            group.id,
+            old_cycle,
+            group.current_cycle,
+            true,
+            false,
+            timestamp,
+        );
     }
 
     Ok(())
@@ -697,61 +707,6 @@ fn apply_missed_contribution_penalties(
             let timestamp = env.ledger().timestamp();
             let _ = timestamp; // timestamp captured internally by emit_penalty_applied
             EventEmitter::emit_penalty_applied(env, group_id, member, group.penalty_amount, cycle);
-        }
-    }
-
-    Ok(())
-}
-
-/// Applies penalties to all members who missed their contribution in the given cycle.
-///
-/// Iterates over all group members, checks if each one contributed in `cycle`, and
-/// calls `apply_penalty` for those who did not. The penalty amount is added to the
-/// cycle pool total so the payout recipient receives it.
-///
-/// This function is a no-op when `group.penalty_enabled` is false or
-/// `group.penalty_amount` is zero.
-fn apply_missed_contribution_penalties(
-    env: &Env,
-    group_id: u64,
-    cycle: u32,
-    group: &Group,
-) -> Result<(), StellarSaveError> {
-    let members_key = StorageKeyBuilder::group_members(group_id);
-    let members: soroban_sdk::Vec<Address> = env
-        .storage()
-        .persistent()
-        .get(&members_key)
-        .ok_or(StellarSaveError::GroupNotFound)?;
-
-    for member in members.iter() {
-        let contrib_key = StorageKeyBuilder::contribution_individual(group_id, cycle, member.clone());
-        if !env.storage().persistent().has(&contrib_key) {
-            // Member missed this cycle — apply penalty
-            let penalty_key = StorageKeyBuilder::member_penalty_total(group_id, member.clone());
-            let current_total: i128 = env.storage().persistent().get(&penalty_key).unwrap_or(0);
-            let new_total = current_total
-                .checked_add(group.penalty_amount)
-                .ok_or(StellarSaveError::Overflow)?;
-            env.storage().persistent().set(&penalty_key, &new_total);
-
-            // Add penalty to the cycle pool so the payout recipient benefits
-            let pool_key = StorageKeyBuilder::contribution_cycle_total(group_id, cycle);
-            let current_pool: i128 = env.storage().persistent().get(&pool_key).unwrap_or(0);
-            let new_pool = current_pool
-                .checked_add(group.penalty_amount)
-                .ok_or(StellarSaveError::Overflow)?;
-            env.storage().persistent().set(&pool_key, &new_pool);
-
-            let timestamp = env.ledger().timestamp();
-            EventEmitter::emit_penalty_applied(
-                env,
-                group_id,
-                member,
-                group.penalty_amount,
-                cycle,
-                timestamp,
-            );
         }
     }
 
@@ -865,7 +820,7 @@ pub fn execute_payout(env: Env, group_id: u64) -> Result<(), StellarSaveError> {
     // All validation checks must pass before any state modifications occur
 
     // Step 4: Validate cycle is complete (all members have contributed)
-    let pool_info = validate_cycle_complete(&env, group_id, current_cycle)?;
+    let pool_info = validate_cycle_complete(&env, &group, current_cycle)?;
 
     // Step 4b: Apply penalties to members who missed contributions this cycle.
     // Penalties are added to the pool total so the payout recipient benefits.

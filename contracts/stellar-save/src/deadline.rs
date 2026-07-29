@@ -8,7 +8,9 @@ use crate::{
 };
 
 /// Maximum allowed extension per call: 7 days in seconds.
-pub const MAX_EXTENSION_SECONDS: u64 = 7 * 24 * 60 * 60; // 604_800
+/// Maximum allowed extension per call: 7 days in seconds.
+/// Canonical definition: `crate::constants::MAX_DEADLINE_EXTENSION_SECONDS`.
+pub const MAX_EXTENSION_SECONDS: u64 = crate::constants::MAX_DEADLINE_EXTENSION_SECONDS;
 
 /// Extends the contribution deadline for a specific cycle of a group.
 ///

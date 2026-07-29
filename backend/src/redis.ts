@@ -1,12 +1,10 @@
 import Redis from 'ioredis';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import { config } from './config';
 
 const redis = new Redis({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD || undefined,
+  host: config.redis.host,
+  port: config.redis.port,
+  password: config.redis.password,
 });
 
 let hits = 0;
@@ -46,6 +44,20 @@ export const delPattern = async (pattern: string) => {
   const keys = await redis.keys(pattern);
   if (keys.length > 0) {
     await redis.del(...keys);
+  }
+};
+
+export const readinessCheckCache = async (): Promise<{ up: boolean; latencyMs: number; error?: string }> => {
+  const start = Date.now();
+  try {
+    await redis.ping();
+    return { up: true, latencyMs: Date.now() - start };
+  } catch (err: any) {
+    return {
+      up: false,
+      latencyMs: Date.now() - start,
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
 };
 

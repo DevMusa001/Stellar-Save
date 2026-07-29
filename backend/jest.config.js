@@ -1,7 +1,7 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  testMatch: ['**/src/tests/**/*.test.ts'],
+  testMatch: ['**/src/tests/**/*.test.ts', '**/test/unit/**/*.test.ts'],
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/generated/**',

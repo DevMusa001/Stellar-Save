@@ -123,17 +123,21 @@ pub enum ContractError {
     /// Error Code: 9002
     DataCorruption = 9002,
 
-    /// Added for ID Generation: The counter has reached its maximum limit.
+    /// The ID counter has reached its maximum limit or arithmetic overflow.
     /// Error Code: 9003
     Overflow = 9003,
 
+    /// Reentrancy detected during function execution.
+    /// Error Code: 9004
+    ReentrancyDetected = 9004,
+
     /// The cycle deadline has passed; contributions are no longer accepted.
-    /// Error Code: 3005
-    CycleDeadlineExpired = 3005,
+    /// Error Code: 3009
+    CycleDeadlineExpired = 3009,
 
     /// The two groups are not compatible for merging (different contribution amount or cycle duration).
-    /// Error Code: 1005
-    MergeIncompatible = 1005,
+    /// Error Code: 1008
+    MergeIncompatible = 1008,
 
     /// The address has not been invited to join this invitation-only group.
     /// Error Code: 2004
@@ -292,6 +296,12 @@ impl ContractError {
             }
             ContractError::GroupAlreadyDissolved => {
                 "The group has already been dissolved or completed."
+            }
+            ContractError::MaxMembersExceeded => {
+                "The requested max_members exceeds the protocol-level limit of 20."
+            }
+            ContractError::ReentrancyDetected => {
+                "Reentrancy detected during function execution."
             }
             ContractError::AlreadyVoted => {
                 "You have already raised a dispute for this group. Each member may only vote once per dispute round."
@@ -491,6 +501,15 @@ impl ErrorRecoveryStrategy {
             }
             ContractError::GroupAlreadyDissolved => {
                 "The group is already in a terminal state and cannot be dissolved again."
+            }
+            ContractError::MaxMembersExceeded => {
+                "Reduce max_members to 20 or less."
+            }
+            ContractError::AlreadyVoted => {
+                "Each member may only vote once per dispute round."
+            }
+            ContractError::ReentrancyDetected => {
+                "Ensure no reentrant calls are performed during execution."
             }
         }
     }

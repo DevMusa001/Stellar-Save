@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from './Button';
 import { useWallet } from '../hooks/useWallet';
 import { useContract } from '../hooks/useContract';
 import { useTransaction, explorerUrl } from '../hooks/useTransaction';
+import { queryKeys } from '../lib/queryKeys';
 
 interface JoinGroupButtonProps {
   groupId: number;
@@ -25,6 +27,7 @@ export function JoinGroupButton({
   const { joinGroup } = useContract();
   const { state, txHash, error, execute, reset } = useTransaction();
   const [showConfirm, setShowConfirm] = useState(false);
+  const queryClient = useQueryClient();
 
   const isFull = currentMembers >= maxMembers;
   const isPending = state === 'pending';
@@ -41,7 +44,16 @@ export function JoinGroupButton({
       if (result.error) throw new Error(result.error.message);
       return result.txHash!;
     });
-    if (state !== 'failed') onSuccess?.();
+    if (state !== 'failed') {
+      // Joining changes this group's member count/detail and its standing
+      // in any group list. queryKeys.groups.all() is ['groups'], and React
+      // Query invalidates by key-prefix match, so this also invalidates
+      // every groups.list(...)/groups.detail(id) entry -- the shared cache
+      // catches up immediately instead of waiting out each query's
+      // staleTime.
+      void queryClient.invalidateQueries({ queryKey: queryKeys.groups.all() });
+      onSuccess?.();
+    }
   };
 
   if (state === 'confirmed') {

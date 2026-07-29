@@ -17,4 +17,35 @@ export const queryKeys = {
   contributions: {
     byGroup: (groupId: string) => ['contributions', groupId] as const,
   },
+
+  // Insurance pool (Issue #1012)
+  insurance: {
+    byGroup: (groupId: string) => ['insurance', groupId] as const,
+  },
+
+  // Governance proposals (Issue #1013)
+  governance: {
+    proposals: () => ['governance', 'proposals'] as const,
+    proposal: (id: string) => ['governance', 'proposals', id] as const,
+    governors: () => ['governance', 'governors'] as const,
+  },
+
+  // Admin dashboard
+  admin: {
+    stats: () => ['admin', 'stats'] as const,
+    users: () => ['admin', 'users'] as const,
+    groups: () => ['admin', 'groups'] as const,
+    auditLogs: () => ['admin', 'audit-logs'] as const,
+  },
+
+  // Social recovery
+  recovery: {
+    config: (owner: string) => ['recovery', 'config', owner] as const,
+    incoming: (guardian: string) => ['recovery', 'incoming', guardian] as const,
+  },
+
+  // Referral rewards
+  referral: {
+    rewards: (address: string) => ['referralRewards', address] as const,
+  },
 } as const;

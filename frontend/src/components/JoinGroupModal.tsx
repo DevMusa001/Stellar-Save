@@ -21,7 +21,7 @@ export const JoinGroupModal: React.FC<Props> = ({ group, onClose, onConfirm }) =
   if (!group) return null;
 
   return (
-    <Dialog open={Boolean(group)} onClose={onClose} maxWidth="xs" fullWidth>
+    <Dialog open={Boolean(group)} onClose={onClose} maxWidth="xs" fullWidth aria-describedby="join-group-description">
       <DialogTitle fontWeight="bold">Join Group</DialogTitle>
       <DialogContent>
         <Stack spacing={2}>
@@ -51,7 +51,7 @@ export const JoinGroupModal: React.FC<Props> = ({ group, onClose, onConfirm }) =
               sx={{ fontWeight: 'bold', fontSize: '0.65rem' }}
             />
           </Stack>
-          <Typography variant="body2" color="text.secondary">
+          <Typography id="join-group-description" variant="body2" color="text.secondary">
             By joining, you commit to contributing <strong>{group.contributionAmount} {group.currency}</strong> each cycle until the group completes.
           </Typography>
         </Stack>

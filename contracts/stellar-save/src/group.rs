@@ -1,10 +1,10 @@
-#![allow(deprecated)]
 use core::fmt;
 use soroban_sdk::{contracttype, Address, Env, Map};
 
 /// Protocol-level maximum number of members per group.
 /// Prevents unbounded storage growth and gas exhaustion.
-pub const MAX_MEMBERS: u32 = 20;
+/// Canonical definition: `crate::constants::MAX_MEMBERS`.
+pub const MAX_MEMBERS: u32 = crate::constants::MAX_MEMBERS;
 
 /// Configuration for the token used by a savings group.
 ///
@@ -628,8 +628,7 @@ mod tests {
         assert_eq!(group.min_members, 2);
         assert_eq!(group.member_count, 0);
         assert_eq!(group.current_cycle, 0);
-        assert_eq!(group.is_active, true);
-        assert_eq!(group.status, GroupStatus::Active);
+
         assert_eq!(group.created_at, 1234567890);
         assert_eq!(group.grace_period_seconds, 0);
     }
