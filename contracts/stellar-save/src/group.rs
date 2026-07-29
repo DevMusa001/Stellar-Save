@@ -3,7 +3,8 @@ use soroban_sdk::{contracttype, Address, Env, Map};
 
 /// Protocol-level maximum number of members per group.
 /// Prevents unbounded storage growth and gas exhaustion.
-pub const MAX_MEMBERS: u32 = 20;
+/// Canonical definition: `crate::constants::MAX_MEMBERS`.
+pub const MAX_MEMBERS: u32 = crate::constants::MAX_MEMBERS;
 
 /// Configuration for the token used by a savings group.
 ///

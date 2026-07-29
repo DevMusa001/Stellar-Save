@@ -22,16 +22,20 @@ pub type PenaltyRecordVec = soroban_sdk::Vec<PenaltyRecord>;
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 /// Base penalty percentage per missed cycle (5%).
-pub const BASE_PENALTY_BPS: u32 = 500; // basis points: 500 = 5%
+/// Canonical definition: `crate::constants::PENALTY_BASE_BPS`.
+pub const BASE_PENALTY_BPS: u32 = crate::constants::PENALTY_BASE_BPS;
 
 /// Penalty increment per additional missed cycle (5%).
-pub const PENALTY_INCREMENT_BPS: u32 = 500;
+/// Canonical definition: `crate::constants::PENALTY_INCREMENT_BPS`.
+pub const PENALTY_INCREMENT_BPS: u32 = crate::constants::PENALTY_INCREMENT_BPS;
 
 /// Maximum penalty cap (25%).
-pub const MAX_PENALTY_BPS: u32 = 2500;
+/// Canonical definition: `crate::constants::PENALTY_MAX_BPS`.
+pub const MAX_PENALTY_BPS: u32 = crate::constants::PENALTY_MAX_BPS;
 
 /// Recovery fee percentage on top of the missed contribution (10%).
-pub const RECOVERY_FEE_BPS: u32 = 1000;
+/// Canonical definition: `crate::constants::PENALTY_RECOVERY_FEE_BPS`.
+pub const RECOVERY_FEE_BPS: u32 = crate::constants::PENALTY_RECOVERY_FEE_BPS;
 
 // ─── Data Structures ─────────────────────────────────────────────────────────
 
