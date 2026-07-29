@@ -216,7 +216,31 @@ const ContributionCard = ({ amount, member, isPaid }: ContributionCardProps) => 
 
 ## Commit Message Conventions
 
-We use [Conventional Commits](https://www.conventionalcommits.org/). Commits are validated by commitlint via a Husky `commit-msg` hook.
+We use [Conventional Commits](https://www.conventionalcommits.org/). Commits are validated by **commitlint** via a Husky `commit-msg` hook that runs automatically on every `git commit`.
+
+### How the hook works
+
+The hook is installed by Husky and lives at `.husky/commit-msg`. It runs `commitlint` against your message before the commit is recorded. A non-conforming message causes the commit to be **rejected** with an error — nothing is committed until the message is fixed.
+
+**Setup** (one-time, after cloning):
+
+```bash
+# Install root dependencies (includes husky + commitlint)
+npm install
+# Husky installs the git hook automatically via the "prepare" script
+```
+
+If the hook is not firing, re-run `npx husky` from the repo root.
+
+**Verify the hook locally:**
+
+```bash
+# This should be rejected (no type prefix):
+git commit --allow-empty -m "my change"
+
+# This should be accepted:
+git commit --allow-empty -m "chore: test commitlint hook"
+```
 
 ### Format
 
@@ -262,7 +286,20 @@ docs: expand contributing guide with architecture overview
 test(contract): add fuzz tests for contribution overflow edge cases
 
 chore: update soroban-sdk to 23.0.3
+
+refactor(mobile): migrate inline stroop formatting to shared SDK utils
+
+style(css): remove unused Vite default classes from App.css
 ```
+
+### Common rejection messages
+
+| Error | Fix |
+|---|---|
+| `subject may not be empty` | Add a description after the colon |
+| `type must be one of [feat, fix, ...]` | Use an allowed type listed above |
+| `subject must not be sentence-case` | Start description with lowercase |
+| `header must not be longer than 100 characters` | Shorten the subject line |
 
 ---
 
@@ -451,6 +488,41 @@ All tests run automatically on:
 - **Scheduled** — nightly runs for extended test suites
 
 View CI status in GitHub Actions tab.
+
+---
+
+## Security: Pre-push Dependency Audit
+
+Before pushing a branch, run the local vulnerability scan to catch known CVEs early:
+
+```bash
+# Full audit (npm + cargo)
+./scripts/pre-push-audit.sh
+
+# npm only (frontend + backend)
+./scripts/pre-push-audit.sh --npm
+
+# Rust only
+./scripts/pre-push-audit.sh --cargo
+```
+
+This script is also installed as a Husky **pre-push** git hook, so it runs automatically on every `git push`. If you need to bypass it (e.g., pushing a WIP branch that you know has a known-safe advisory), run:
+
+```bash
+git push --no-verify
+```
+
+### Triage policy
+
+See [docs/dependency-update-policy.md](docs/dependency-update-policy.md) for the full triage process. In short:
+
+| Severity | Required action |
+|---|---|
+| CRITICAL | Must fix or receive explicit maintainer approval before merge |
+| HIGH | Must fix or document accepted risk in `.cargo/audit.toml` / `npm audit` allowlist |
+| MODERATE / LOW | Log and track; do not block push |
+
+The script exits non-zero only on HIGH or CRITICAL findings. Lower-severity advisories are reported but do not fail the check.
 
 ---
 

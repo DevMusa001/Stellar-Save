@@ -12,6 +12,8 @@ type Status = 'active' | 'completed' | 'pending' | 'complete';
 interface GroupCardStaticProps {
   groupId?: string;
   groupName: string;
+  description?: string;
+  imageUrl?: string;
   memberCount: number;
   contributionAmount: number;
   currency?: string;
@@ -24,6 +26,7 @@ interface GroupCardStaticProps {
   onViewDetails?: () => void;
   onJoin?: () => void;
   className?: string;
+  ariaLabel?: string;
 }
 
 /** Fetch mode: only groupId is required; data is loaded via React Query. */
@@ -42,6 +45,7 @@ interface GroupCardFetchProps {
   onViewDetails?: () => void;
   onJoin?: () => void;
   className?: string;
+  ariaLabel?: string;
 }
 
 export type GroupCardProps = GroupCardStaticProps | GroupCardFetchProps;
@@ -89,11 +93,14 @@ interface CardUIProps {
   onViewDetails?: () => void;
   onJoin?: () => void;
   className?: string;
+  ariaLabel?: string;
 }
 
 function GroupCardUI({
   groupId,
   groupName,
+  description,
+  imageUrl,
   memberCount,
   contributionAmount,
   status,
@@ -105,6 +112,7 @@ function GroupCardUI({
   onViewDetails,
   onJoin,
   className = '',
+  ariaLabel,
 }: CardUIProps) {
   const classes = ['group-card', className].filter(Boolean).join(' ');
   const prefetchGroup = usePrefetchGroup();
@@ -118,6 +126,15 @@ function GroupCardUI({
     if ((e.target as HTMLElement).closest('button')) return;
     onClick?.();
   };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      onClick();
+    }
+  };
+
+  const cardLabel = ariaLabel || `Group ${groupName}`;
 
   const content = (
     <>
@@ -199,7 +216,15 @@ function GroupCardUI({
   }
 
   return (
-    <div className={classes} onClick={handleCardClick} onMouseEnter={handleMouseEnter}>
+    <div
+      className={classes}
+      onClick={handleCardClick}
+      onMouseEnter={handleMouseEnter}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={handleKeyDown}
+      aria-label={onClick ? cardLabel : undefined}
+    >
       {cardContent}
     </div>
   );
@@ -259,6 +284,7 @@ export function GroupCard(props: GroupCardProps) {
         onViewDetails={props.onViewDetails}
         onJoin={props.onJoin}
         className={props.className}
+        ariaLabel={props.ariaLabel}
       />
     );
   }
@@ -282,6 +308,7 @@ export function GroupCard(props: GroupCardProps) {
       onViewDetails={p.onViewDetails}
       onJoin={p.onJoin}
       className={p.className}
+      ariaLabel={p.ariaLabel}
     />
   );
 }

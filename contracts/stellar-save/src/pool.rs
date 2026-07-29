@@ -696,4 +696,10 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), StellarSaveError::InvalidAmount);
     }
+
+    #[test]
+    fn test_calculate_total_pool_overflow_protection() {
+        let result = PoolCalculator::calculate_total_pool(i128::MAX, 2);
+        assert!(result.is_err());
+    }
 }

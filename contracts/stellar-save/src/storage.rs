@@ -128,6 +128,9 @@ pub enum GroupKey {
     /// Per-member dispute vote: GROUP_DISPUTE_VOTE_{id}_{member}
     /// Stores a bool indicating whether this member has raised a dispute.
     DisputeVote(u64, Address),
+
+    /// Member bid amount for Bid payout order: GROUP_BID_{id}_{cycle}_{member}
+    BidAmount(u64, u32, Address),
 }
 
 /// Storage keys for member-related data.

@@ -647,7 +647,16 @@ fn advance_cycle_or_complete(env: &Env, group: &mut Group) -> Result<(), Stellar
     // Emit CycleAdvanced event (only when group is not yet complete)
     if !group.is_complete() {
         let timestamp = env.ledger().timestamp();
-        EventEmitter::emit_cycle_advanced(env, group.id, group.current_cycle, timestamp);
+        let old_cycle = group.current_cycle.saturating_sub(1);
+        EventEmitter::emit_cycle_advanced(
+            env,
+            group.id,
+            old_cycle,
+            group.current_cycle,
+            true,
+            false,
+            timestamp,
+        );
     }
 
     Ok(())
