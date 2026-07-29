@@ -4,7 +4,7 @@ import { Stack, Typography } from '@mui/material';
 import { AppCard, AppLayout } from '../ui';
 import { GroupList } from '../components/GroupList';
 import { Button } from '../components/Button';
-import { useGroups } from '../hooks/useGroups';
+import { useGroupsQuery } from '../hooks/useGroupsQuery';
 import { StaleDataBanner } from '../components/StaleDataBanner';
 import { ROUTES } from '../routing/constants';
 
@@ -33,7 +33,7 @@ export default function GroupsPage() {
     [setParams],
   );
 
-  const { groups, isLoading, error, refresh, isStale, fromCache } = useGroups({
+  const { groups, isLoading, error, refresh, isStale, fromCache } = useGroupsQuery({
     initialFilters: { search, minAmount, maxAmount },
   });
 
