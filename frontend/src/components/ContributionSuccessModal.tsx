@@ -261,7 +261,7 @@ export function ContributionSuccessModal({
 
         <h2
           id="success-modal-title"
-          style={{ margin: '0 0 4px', fontSize: '20px', fontWeight: 700, color: '#111827' }}
+          style={{ margin: '0 0 4px', fontSize: '20px', fontWeight: 700, color: 'var(--color-text-primary)' }}
         >
           Contribution Successful!
         </h2>
@@ -295,7 +295,7 @@ export function ContributionSuccessModal({
               href={getExplorerTxUrl(txHash)}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ color: '#6366f1', textDecoration: 'none' }}
+              style={{ color: 'var(--color-primary)', textDecoration: 'none' }}
             >
               View on Stellar Explorer →
             </a>
