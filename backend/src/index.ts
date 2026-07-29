@@ -240,9 +240,10 @@ if (config.analyticsResync.enabled) {
   startAnalyticsResyncJob(config.analyticsResync.schedule);
 }
 
-// Start keeper/relayer for automated payout execution (Issue #1026)
+// Start keeper/relayer for automated payout execution (Issue #1026, #1305)
 if (config.keeper.enabled) {
-  startKeeperJob(config.keeper.schedule, config.indexer.contractId, config.stellar.rpcUrl);
+  const stellarClient = new StellarClient(config.stellar.rpcUrl);
+  startKeeperJob(config.keeper.schedule, config.indexer.contractId, stellarClient, prisma);
 }
 
 const services = {
