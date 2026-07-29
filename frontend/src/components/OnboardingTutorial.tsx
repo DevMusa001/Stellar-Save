@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import "./OnboardingTutorial.css";
 
 const STORAGE_KEY = "stellar-save-onboarding-complete";
@@ -59,11 +60,17 @@ export function OnboardingTutorial({
   );
   const [step, setStep] = useState(0);
   const [visible, setVisible] = useState(true);
-
-  if ((completed && !forceShow) || !visible) return null;
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   const isLast = step === STEPS.length - 1;
   const current = STEPS[step];
+  const showTutorial = !((completed && !forceShow) || !visible);
+
+  function finish() {
+    setCompleted(true);
+    setVisible(false);
+    onComplete?.();
+  }
 
   const handleNext = () => {
     if (isLast) {
@@ -79,18 +86,34 @@ export function OnboardingTutorial({
     finish();
   };
 
-  function finish() {
-    setCompleted(true);
-    setVisible(false);
-    onComplete?.();
-  }
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") finish();
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  // Trap Tab/Shift+Tab within the dialog while visible and restore focus to
+  // the triggering element once the tutorial is dismissed.
+  useFocusTrap(dialogRef, showTutorial);
+
+  useEffect(() => {
+    if (!showTutorial) return;
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [showTutorial, handleKeyDown]);
+
+  if (!showTutorial) return null;
 
   return (
     <div
+      ref={dialogRef}
       className="onboarding-overlay"
       role="dialog"
       aria-modal="true"
-      aria-label="Onboarding tutorial"
+      aria-labelledby="onboarding-title"
+      aria-describedby="onboarding-description"
       data-testid="onboarding-tutorial"
     >
       <div className="onboarding-modal">
@@ -111,8 +134,8 @@ export function OnboardingTutorial({
           <div className="onboarding-icon" aria-hidden="true">
             {current.icon}
           </div>
-          <h2 className="onboarding-title">{current.title}</h2>
-          <p className="onboarding-description">{current.description}</p>
+          <h2 id="onboarding-title" className="onboarding-title">{current.title}</h2>
+          <p id="onboarding-description" className="onboarding-description">{current.description}</p>
         </div>
 
         <div className="onboarding-dots" aria-label="Tutorial progress">
