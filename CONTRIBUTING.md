@@ -188,6 +188,8 @@ pub fn require_creator(env: &Env, group: &Group) -> Result<(), ContractError> {
 - Keep components under ~150 lines; extract sub-components when they grow larger
 - Use semantic HTML for accessibility (`<button>`, `<nav>`, `<main>`, etc.)
 - Run `npm run lint` before committing — ESLint is enforced in CI
+- **Import Ordering**: Maintain structured imports sorted alphabetically in groups: `builtin`, `external`, `internal`, `parent`/`sibling`, `index`, `type`
+- **Circular Dependencies**: Circular dependencies are strictly forbidden (`import/no-cycle`). Ensure modules are strictly decoupled and acyclic
 
 Prettier config (`.prettierrc`):
 - Single quotes, semicolons, trailing commas (ES5), 100-char print width, 2-space indent
@@ -207,9 +209,14 @@ const ContributionCard = ({ amount, member, isPaid }: ContributionCardProps) => 
 );
 ```
 
-### General
+### General & Formatting Standards
 
-- `.editorconfig` is present — use an editor that respects it (UTF-8, LF line endings, final newline)
+- `.editorconfig` is present at the repository root and enforced in all environments:
+  - **UTF-8** encoding across all files
+  - **LF** (`\n`) line endings (no CRLF)
+  - **Final newline** inserted on save
+  - **Trailing whitespace** trimmed automatically (except in Markdown `.md` files)
+  - **Indentation**: 4 spaces for Rust (`.rs`); 2 spaces for TypeScript (`.ts`, `.tsx`), JavaScript, JSON, Shell, TOML, YAML, and SQL
 - Do not commit secrets, private keys, or `.env` files — `.gitignore` covers common cases but double-check before staging
 
 ---

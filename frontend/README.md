@@ -1,29 +1,67 @@
 # Stellar Save Frontend
 
-Frontend for Stellar Save built with React, TypeScript, and Vite.
+Frontend single-page application (SPA) for Stellar Save built with React, TypeScript, Vite, and Material-UI (MUI).
 
-## Scripts
+## Development & Setup
 
-- `npm run dev` start local dev server
-- `npm run build` type-check and build
-- `npm run lint` run ESLint
-- `npm run test` run tests
+### Prerequisites
+- Node.js (v18+)
+- npm (v9+)
 
-## UI Component Library
+### Installation & Local Run
+```bash
+# Navigate to frontend directory
+cd frontend
 
-This project is configured with **MUI** and a centralized theme/wrapper layer.
+# Install dependencies
+npm install
 
-- Setup and usage guide: `docs/ui-component-library.md`
-- Theme tokens: `src/ui/theme/tokens.ts`
-- Theme creation: `src/ui/theme/theme.ts`
-- Theme provider: `src/ui/providers/AppThemeProvider.tsx`
-- Wrappers: `src/ui/components/index.ts`
-- Layout: `src/ui/layout/AppLayout.tsx`
+# Start local development server with HMR
+npm run dev
+```
+
+### Build & Testing
+```bash
+# Type-check and build production bundle
+npm run build
+
+# Run ESLint code quality checks
+npm run lint
+
+# Run unit and component tests (Vitest)
+npm run test
+
+# Run tests with code coverage report
+npm run test:coverage
+```
+
+## Environment Configuration
+
+Copy the example environment file `.env.example` in the root or create `.env` in `frontend/`:
+
+```bash
+VITE_STELLAR_NETWORK=testnet
+VITE_STELLAR_RPC_URL=https://soroban-testnet.stellar.org
+VITE_CONTRACT_GUESS_THE_NUMBER=<your-contract-id>
+VITE_CONTRACT_FUNGIBLE_ALLOWLIST=<your-contract-id>
+VITE_CONTRACT_NFT_ENUMERABLE=<your-contract-id>
+```
+
+> **Note**: Variables prefixed with `VITE_` are exposed to the browser. Do not include private keys or sensitive administrative credentials in frontend environment files.
+
+## Component Architecture & Design System
+
+The frontend uses Material-UI with a centralized theme and wrapper layer:
+- **Design Tokens**: `src/ui/theme/tokens.ts`
+- **Theme Configuration**: `src/ui/theme/theme.ts`
+- **App Theme Provider**: `src/ui/providers/AppThemeProvider.tsx`
+- **Component Wrappers**: `src/ui/components/index.ts`
+- **App Layout**: `src/ui/layout/AppLayout.tsx`
+- **Detailed UI Guide**: Refer to [docs/ui-component-library.md](../docs/ui-component-library.md)
 
 ## Wallet Integration
 
-Wallet integration state and adapters live in:
-
+Stellar wallet connection adapters and providers are defined in:
 - `src/wallet/WalletProvider.tsx`
 - `src/wallet/freighterAdapter.ts`
 - `src/wallet/types.ts`
