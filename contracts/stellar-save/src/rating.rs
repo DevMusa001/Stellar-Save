@@ -10,6 +10,7 @@
 use soroban_sdk::{contracttype, Address, Env, String};
 
 use crate::{
+    auth::is_active_member,
     error::StellarSaveError,
     events::EventEmitter,
     group::Group,
@@ -99,8 +100,7 @@ pub fn rate_group(
     }
 
     // 3. Caller must be a member
-    let profile_key = StorageKeyBuilder::member_profile(group_id, caller.clone());
-    if !env.storage().persistent().has(&profile_key) {
+    if !is_active_member(env, group_id, &caller) {
         return Err(StellarSaveError::NotMember);
     }
 

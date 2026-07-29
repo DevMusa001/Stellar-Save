@@ -54,7 +54,10 @@ frontend/
 ├── src/
 │   ├── App.tsx                      # Added useDeepLink hook
 │   ├── hooks/
-│   │   └── useDeepLink.ts          # Deep link handler
+│   │   └── useDeepLink.ts          # Deep link handler (uses parseDeepLinkUrl utility)
+│   ├── utils/
+│   │   ├── deepLinking.ts           # Pure utility for parsing deep link URLs
+│   │   └── deepLinking.test.ts      # Unit tests for deep link parsing
 │   ├── pages/
 │   │   ├── JoinViaInvite.tsx       # Updated to use :inviteCode param
 │   │   └── AppDownloadPage.tsx     # New web fallback page
@@ -155,6 +158,19 @@ Used when generating shareable links to ensure non-users get prompted to downloa
 
 ## Components
 
+### Deep Linking Utilities
+
+Location: `frontend/src/utils/deepLinking.ts`
+
+Pure utility functions for parsing deep link URLs:
+- `parseDeepLinkUrl(url: string): string | null` - Parses any deep link format and returns app route
+- Unit tests in `deepLinking.test.ts` cover edge cases (malformed links, various schemes, etc.)
+
+Supports formats:
+- Custom scheme: `stellarsave://join/ABC123` → `/join/ABC123`
+- HTTPS: `https://stellarsave.app/join/ABC123` → `/join/ABC123`
+- Subdomains: `https://app.stellarsave.app/join/ABC123` → `/join/ABC123`
+
 ### useDeepLink Hook
 
 Location: `frontend/src/hooks/useDeepLink.ts`
@@ -162,7 +178,7 @@ Location: `frontend/src/hooks/useDeepLink.ts`
 Automatically handles deep link events:
 - Listens to `appUrlOpen` event (warm start)
 - Checks launch URL (cold start)
-- Parses URL and extracts route
+- Uses `parseDeepLinkUrl` utility to extract route
 - Navigates using React Router
 
 ```typescript

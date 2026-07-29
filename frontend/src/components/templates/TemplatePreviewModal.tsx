@@ -18,10 +18,10 @@ export function TemplatePreviewModal({ template, onClose, onUse }: TemplatePrevi
   ];
 
   return (
-    <Dialog open={!!template} onClose={onClose} maxWidth="xs" fullWidth>
+    <Dialog open={!!template} onClose={onClose} maxWidth="xs" fullWidth aria-describedby="template-preview-description">
       <DialogTitle>{template.name}</DialogTitle>
       <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <Typography id="template-preview-description" variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           {template.description}
         </Typography>
         <Divider sx={{ mb: 2 }} />

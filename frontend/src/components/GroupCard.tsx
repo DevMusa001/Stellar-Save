@@ -3,7 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { buildRoute } from '../routing/constants';
 import { fetchGroup } from '../utils/groupApi';
 import type { GroupDetail } from '../types/group';
+import { queryKeys } from '../lib/queryKeys';
+import { STALE_TIME } from '../lib/queryClient';
 import { GroupBadge } from './GroupBadge';
+import { Button } from './Button';
+import { GroupCardSkeleton } from './Skeleton/GroupCardSkeleton';
 import { usePrefetchGroup } from '../hooks/useGroup';
 
 type Status = 'active' | 'completed' | 'pending' | 'complete';
@@ -20,8 +24,6 @@ interface GroupCardStaticProps {
   status?: Status;
   currentCycle?: number;
   nextPayoutDate?: Date | null;
-  description?: string;
-  imageUrl?: string;
   onClick?: () => void;
   onViewDetails?: () => void;
   onJoin?: () => void;
@@ -106,8 +108,6 @@ function GroupCardUI({
   status,
   currentCycle,
   nextPayoutDate,
-  description,
-  imageUrl,
   onClick,
   onViewDetails,
   onJoin,
@@ -225,7 +225,7 @@ function GroupCardUI({
       onKeyDown={handleKeyDown}
       aria-label={onClick ? cardLabel : undefined}
     >
-      {cardContent}
+      {content}
     </div>
   );
 }
@@ -245,12 +245,15 @@ function GroupCardUI({
 export function GroupCard(props: GroupCardProps) {
   const isFetchMode = props.groupId !== undefined && props.groupName === undefined;
 
-  // Fetch mode — React Query
+  // Fetch mode — React Query. Uses the same cache key as `useGroup()` /
+  // `usePrefetchGroup()` (queryKeys.groups.detail) so a hover-prefetch or a
+  // GroupDetailPage render for the same group reuses this cache entry
+  // instead of triggering a second network call.
   const { data, isLoading, error } = useQuery({
-    queryKey: ['group', props.groupId],
+    queryKey: queryKeys.groups.detail(props.groupId ?? ''),
     queryFn: () => fetchGroup(props.groupId!) as Promise<GroupDetail | null>,
     enabled: isFetchMode,
-    staleTime: 30_000,
+    staleTime: STALE_TIME.GROUP_STATE,
   });
 
   if (isFetchMode) {

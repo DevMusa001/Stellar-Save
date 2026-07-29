@@ -199,15 +199,7 @@ export class NotificationService {
     }
 
     try {
-      // In production, you would use the Firebase Admin SDK:
-      // const admin = require('firebase-admin');
-      // const message = {
-      //   notification: { title: payload.title, body: payload.body },
-      //   data: payload.data,
-      //   token: deviceToken,
-      // };
-      // return await admin.messaging().send(message);
-
+      // TODO: integrate Firebase Admin SDK when credentials are provisioned.
       // Placeholder for Firebase-Admin SDK integration
       logger.info('Firebase message would be sent', { deviceToken, payload });
       return `firebase-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;

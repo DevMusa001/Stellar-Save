@@ -19,6 +19,10 @@ export interface ErrorBoundaryState {
   retryCount: number;
 }
 
+// NOTE: Intentional class component exception (see issue #1265).
+// React has no hooks-based equivalent for `getDerivedStateFromError` /
+// `componentDidCatch`, so error boundaries must be class components.
+// Do not convert this to a function component.
 export class ErrorBoundary extends React.Component<
   React.PropsWithChildren<ErrorBoundaryProps>,
   ErrorBoundaryState

@@ -58,12 +58,10 @@ export default function GroupDetailPage() {
 
   const handleContribute = () => {
     // TODO: Implement contribution logic
-    console.log('Contribute to group:', groupId);
   };
 
   const handleJoinGroup = () => {
     // TODO: Implement join group logic
-    console.log('Join group:', groupId);
   };
 
   const isMember = group?.members.some(member => member.address === activeAddress);
@@ -144,8 +142,8 @@ export default function GroupDetailPage() {
                   amount={group.contributionAmount}
                   cycleId={group.currentCycle?.cycleNumber || 0}
                   walletAddress={activeAddress || undefined}
-                  onSuccess={(txHash) => console.log('Contribution successful:', txHash)}
-                  onError={(error) => console.error('Contribution failed:', error)}
+                  onSuccess={() => {}}
+                  onError={() => {}}
                 />
               )}
             </Box>
@@ -167,8 +165,8 @@ export default function GroupDetailPage() {
           contributions={group.contributions}
           cycles={group.cycles}
           currentCycle={group.currentCycle}
-          onMemberClick={(member) => console.log('Member clicked:', member)}
-          onContributionClick={(contribution) => console.log('Contribution clicked:', contribution)}
+          onMemberClick={() => {}}
+          onContributionClick={() => {}}
         />
       </Stack>
     </AppLayout>

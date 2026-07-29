@@ -31,6 +31,10 @@ const AboutPage = lazy(() => import("../pages/AboutPage"));
 const FeedbackAdminPage = lazy(() => import("../pages/FeedbackAdminPage"));
 const TransactionHistoryPage = lazy(() => import("../pages/TransactionHistoryPage"));
 const GovernancePage = lazy(() => import("../pages/GovernancePage"));
+const TransactionBuilderPage = lazy(() => import("../pages/TransactionBuilderPage"));
+const HardwareWalletPage = lazy(() => import("../pages/HardwareWalletPage"));
+const DepositPage = lazy(() => import("../pages/DepositPage"));
+const WithdrawPage = lazy(() => import("../pages/WithdrawPage"));
 
 export const routeConfig: RouteConfig[] = [
   {

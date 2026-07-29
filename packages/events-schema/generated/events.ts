@@ -284,38 +284,38 @@ export interface MemberReferredEvent {
 }
 
 export type ContractEvent =
-  | GroupCreatedEvent |
-  | MemberJoinedEvent |
-  | MemberLeftEvent |
-  | MemberRemovedEvent |
-  | ContributionMadeEvent |
-  | PayoutExecutedEvent |
-  | ContributionMissedEvent |
-  | GroupCompletedEvent |
-  | GroupStatusChangedEvent |
-  | GracePeriodContributionEvent |
-  | GroupMetadataUpdatedEvent |
-  | ContractPausedEvent |
-  | ContractUnpausedEvent |
-  | CycleAdvancedEvent |
-  | GroupPausedEvent |
-  | GroupUnpausedEvent |
-  | ContributionVerifiedEvent |
-  | ContributionAmountProposedEvent |
-  | ContributionAmountChangedEvent |
-  | PenaltyAppliedEvent |
-  | PenaltyRecoveredEvent |
-  | MilestoneReachedEvent |
-  | MemberInvitedEvent |
-  | InvitationRevokedEvent |
-  | GroupsMergedEvent |
-  | RewardClaimedEvent |
-  | GroupArchivedEvent |
-  | AutoContributionExecutedEvent |
-  | AutoContributionFailedEvent |
-  | GroupRatedEvent |
-  | FeePaidEvent |
-  | RefundIssuedEvent |
+  | GroupCreatedEvent
+  | MemberJoinedEvent
+  | MemberLeftEvent
+  | MemberRemovedEvent
+  | ContributionMadeEvent
+  | PayoutExecutedEvent
+  | ContributionMissedEvent
+  | GroupCompletedEvent
+  | GroupStatusChangedEvent
+  | GracePeriodContributionEvent
+  | GroupMetadataUpdatedEvent
+  | ContractPausedEvent
+  | ContractUnpausedEvent
+  | CycleAdvancedEvent
+  | GroupPausedEvent
+  | GroupUnpausedEvent
+  | ContributionVerifiedEvent
+  | ContributionAmountProposedEvent
+  | ContributionAmountChangedEvent
+  | PenaltyAppliedEvent
+  | PenaltyRecoveredEvent
+  | MilestoneReachedEvent
+  | MemberInvitedEvent
+  | InvitationRevokedEvent
+  | GroupsMergedEvent
+  | RewardClaimedEvent
+  | GroupArchivedEvent
+  | AutoContributionExecutedEvent
+  | AutoContributionFailedEvent
+  | GroupRatedEvent
+  | FeePaidEvent
+  | RefundIssuedEvent
   | MemberReferredEvent;
 
 export type ContractEventTopic = ContractEvent['type'];

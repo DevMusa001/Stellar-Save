@@ -108,7 +108,7 @@ impl GroupRepository {
     /// * `Some(Vec<Address>)` - The payout sequence if it exists
     /// * `None` - If the payout sequence does not exist
     pub fn get_payout_sequence(env: &Env, group_id: u64) -> Option<Vec<Address>> {
-        let payout_seq_key = StorageKeyBuilder::group_payout_sequence(group_id);
+        let payout_seq_key = StorageKeyBuilder::payout_sequence(group_id);
         env.storage()
             .persistent()
             .get::<_, Vec<Address>>(&payout_seq_key)
@@ -121,7 +121,7 @@ impl GroupRepository {
     /// * `group_id` - The ID of the group
     /// * `payout_sequence` - The payout sequence to save
     pub fn save_payout_sequence(env: &Env, group_id: u64, payout_sequence: &Vec<Address>) {
-        let payout_seq_key = StorageKeyBuilder::group_payout_sequence(group_id);
+        let payout_seq_key = StorageKeyBuilder::payout_sequence(group_id);
         env.storage()
             .persistent()
             .set(&payout_seq_key, payout_sequence);

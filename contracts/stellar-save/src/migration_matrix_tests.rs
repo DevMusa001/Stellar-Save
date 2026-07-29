@@ -204,7 +204,7 @@ mod migration_matrix {
             ))
             .expect("contribution must survive v1→v2 apply");
         assert_eq!(record.amount, 5_000_000);
-        assert_eq!(record.member, member);
+        assert_eq!(record.member_address, member);
         assert_eq!(record.cycle_number, 0);
 
         let total: i128 = env

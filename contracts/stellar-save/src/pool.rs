@@ -234,6 +234,30 @@ impl PoolCalculator {
             .get(&group_key)
             .ok_or(StellarSaveError::GroupNotFound)?;
 
+        Self::get_pool_info_for_group(env, &group, cycle)
+    }
+
+    /// Builds complete pool information for a group and cycle, reusing a
+    /// `Group` the caller has already loaded from storage.
+    ///
+    /// Gas opt: avoids re-reading the `group_data` entry when the caller
+    /// already holds the group (e.g. `is_payout_due`, `execute_payout`),
+    /// eliminating a redundant SLOAD within the same invocation.
+    ///
+    /// # Arguments
+    /// * `env` - Soroban environment
+    /// * `group` - Already-loaded group data
+    /// * `cycle` - Current cycle number
+    ///
+    /// # Returns
+    /// * `Ok(PoolInfo)` - Complete pool information
+    /// * `Err(StellarSaveError)` - If pool calculation fails
+    pub fn get_pool_info_for_group(
+        env: &Env,
+        group: &crate::group::Group,
+        cycle: u32,
+    ) -> Result<PoolInfo, StellarSaveError> {
+        let group_id = group.id;
         let member_count = group.member_count;
         let contribution_amount = group.contribution_amount;
 
@@ -705,5 +729,11 @@ mod tests {
 
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), StellarSaveError::InvalidAmount);
+    }
+
+    #[test]
+    fn test_calculate_total_pool_overflow_protection() {
+        let result = PoolCalculator::calculate_total_pool(i128::MAX, 2);
+        assert!(result.is_err());
     }
 }

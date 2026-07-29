@@ -1,12 +1,8 @@
 import { SorobanClientPool, getSorobanPool, resetSorobanPool } from '../lib/soroban';
 
-// Stub SorobanRpc.Server so tests don't need a live RPC endpoint
-jest.mock('@stellar/stellar-sdk', () => {
-  class FakeServer {
-    constructor(public url: string, _opts?: unknown) {}
-  }
-  return { rpc: { Server: FakeServer } };
-});
+// Use the shared mock — no live RPC endpoint needed.
+// See backend/src/__mocks__/@stellar/stellar-sdk.ts for the full stub surface.
+jest.mock('@stellar/stellar-sdk');
 
 function makePool(poolSize = 3, acquireTimeoutMs = 200) {
   return new SorobanClientPool({ rpcUrl: 'http://localhost', poolSize, acquireTimeoutMs });

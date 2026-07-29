@@ -35,7 +35,8 @@ pub fn validate_group_string(s: &String, max_bytes: u32) -> Result<(), StellarSa
 
 /// Rounding precision for contribution amounts (0.01 XLM = 10^5 stroops).
 /// This prevents precision issues with very small amounts.
-pub const ROUNDING_PRECISION: i128 = 100_000; // 10^5 stroops = 0.01 XLM
+/// Canonical definition lives in `crate::constants::CONTRIBUTION_ROUNDING_PRECISION`.
+pub const ROUNDING_PRECISION: i128 = crate::constants::CONTRIBUTION_ROUNDING_PRECISION;
 
 /// Rounds a contribution amount to the nearest 0.01 XLM (or token equivalent).
 ///
@@ -84,40 +85,33 @@ pub fn round_contribution_amount(amount: i128) -> i128 {
 /// // Returns: "GROUP-42"
 /// ```
 pub fn format_group_id(env: &Env, group_id: u64) -> String {
-    // Convert u64 to bytes manually
+    let mut buf = [0u8; 32];
+    buf[0] = b'G';
+    buf[1] = b'R';
+    buf[2] = b'O';
+    buf[3] = b'U';
+    buf[4] = b'P';
+    buf[5] = b'-';
+
     let mut num = group_id;
-    let mut digits = Bytes::new(env);
-    
     if num == 0 {
-        digits.push_back(b'0');
+        buf[6] = b'0';
+        String::from_bytes(env, &buf[..7])
     } else {
-        // Build digits in reverse, then reverse them
-        let mut temp = Bytes::new(env);
+        let mut digits = [0u8; 20];
+        let mut len = 0;
         while num > 0 {
-            temp.push_back(b'0' + (num % 10) as u8);
+            digits[len] = b'0' + (num % 10) as u8;
             num /= 10;
+            len += 1;
         }
-        // Reverse the digits
-        for i in (0..temp.len()).rev() {
-            digits.push_back(temp.get(i).unwrap());
+        let mut idx = 6;
+        for i in (0..len).rev() {
+            buf[idx] = digits[i];
+            idx += 1;
         }
+        String::from_bytes(env, &buf[..idx])
     }
-    
-    // Build the final string: "GROUP-" + digits
-    let mut result = Bytes::new(env);
-    result.push_back(b'G');
-    result.push_back(b'R');
-    result.push_back(b'O');
-    result.push_back(b'U');
-    result.push_back(b'P');
-    result.push_back(b'-');
-    
-    // Append digits
-    for i in 0..digits.len() {
-        result.push_back(digits.get(i).unwrap());
-    }
-    
-    String::from_bytes(env, &result)
 }
 
 /// Checks if the current cycle deadline (plus grace period) has passed.
@@ -256,7 +250,8 @@ mod tests {
         assert_eq!(validate_group_string(&s, 64), Err(StellarSaveError::InvalidMetadata));
     }
 
-
+    #[test]
+    fn test_format_group_id_single_digit() {
         let env = Env::default();
         let result = format_group_id(&env, 1);
         assert_eq!(result, String::from_str(&env, "GROUP-1"));
@@ -440,6 +435,48 @@ mod tests {
         assert_eq!(result, Ok(max_members - 1));
     }
 
+    #[test]
+    fn test_calculate_current_cycle_clock_skew_returns_zero() {
+        // Guard: if current_time < started_at (e.g. due to clock skew) → Ok(0), no panic.
+        let env = Env::default();
+        let started_at: u64 = 5000;
+        let cycle_duration: u64 = 604800;
+
+        let creator = Address::generate(&env);
+        let mut group = Group::new(1, creator, 1_000_000, cycle_duration, 5, 2, started_at, 0);
+        group.member_count = 2;
+        group.activate(started_at);
+        store_group(&env, &group);
+
+        // Set ledger time to before started_at
+        env.ledger().set_timestamp(started_at - 1);
+        let result = calculate_current_cycle(&env, 1);
+        assert_eq!(result, Ok(0));
+    }
+
+    #[test]
+    fn test_calculate_current_cycle_exactly_one_second_before_first_boundary() {
+        // Boundary: exactly (cycle_duration - 1) seconds elapsed → still cycle 0
+        let env = Env::default();
+        let started_at: u64 = 1000;
+        let cycle_duration: u64 = 86400; // 1 day
+
+        let creator = Address::generate(&env);
+        let mut group = Group::new(1, creator, 1_000_000, cycle_duration, 5, 2, started_at, 0);
+        group.member_count = 2;
+        group.activate(started_at);
+        store_group(&env, &group);
+
+        env.ledger().set_timestamp(started_at + cycle_duration - 1);
+        let result = calculate_current_cycle(&env, 1);
+        assert_eq!(result, Ok(0));
+
+        // Exactly at the boundary → cycle 1
+        env.ledger().set_timestamp(started_at + cycle_duration);
+        let result = calculate_current_cycle(&env, 1);
+        assert_eq!(result, Ok(1));
+    }
+
     // --- round_contribution_amount tests ---
 
     #[test]
@@ -494,3 +531,4 @@ mod tests {
         assert_eq!(round_contribution_amount(255_000_000), 255_000_000);
         assert_eq!(round_contribution_amount(1_002_500_000), 1_002_500_000);
     }
+}

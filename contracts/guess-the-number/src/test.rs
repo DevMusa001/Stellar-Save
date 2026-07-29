@@ -4,19 +4,12 @@ extern crate std;
 
 use super::*;
 use soroban_sdk::{
-    testutils::{Address as _, MockAuth, MockAuthInvoke},
-    token::StellarAssetClient,
+    testutils::MockAuth,
+    MockAuthInvoke,
     Address, Env, IntoVal, Val, Vec,
 };
 
-fn init_test<'a>(env: &'a Env) -> (Address, StellarAssetClient<'a>, GuessTheNumberClient<'a>) {
-    let admin = Address::generate(env);
-    let client = generate_client(env, &admin);
-    // This is needed because we want to call a function from within the context of the contract
-    // In this case we want to get the address of the XLM contract registered by the constructor
-    let sac_address = env.as_contract(&client.address, || xlm::contract_id(env));
-    (admin, StellarAssetClient::new(env, &sac_address), client)
-}
+use crate::test_utils::{init_test, generate_address, generate_client, create_env};
 
 #[test]
 fn constructed_correctly() {
@@ -34,9 +27,9 @@ fn constructed_correctly() {
 
 #[test]
 fn only_admin_can_reset() {
-    let env = &Env::default();
+    let env = &create_env();
     let (admin, _, client) = init_test(env);
-    let user = Address::generate(env);
+    let user = generate_address(env);
 
     set_caller(&client, "reset", &user, ());
     assert!(client.try_reset().is_err());
@@ -127,15 +120,6 @@ fn reset_and_guess() {
     assert!(client.guess(&10, &alice));
 }
 
-fn generate_client<'a>(env: &Env, admin: &Address) -> GuessTheNumberClient<'a> {
-    let contract_id = Address::generate(env);
-    env.mock_all_auths();
-    let contract_id = env.register_at(&contract_id, GuessTheNumber, (admin,));
-    env.set_auths(&[]); // clear auths
-    GuessTheNumberClient::new(env, &contract_id)
-}
-
-// This lets you mock the auth context for a function call
 fn set_caller<T>(client: &GuessTheNumberClient, fn_name: &str, caller: &Address, args: T)
 where
     T: IntoVal<Env, Vec<Val>>,

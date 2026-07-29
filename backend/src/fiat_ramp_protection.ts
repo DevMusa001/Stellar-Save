@@ -258,16 +258,8 @@ async function verifyCaptchaToken(token: string, _remoteIp: string): Promise<boo
     return true;
   }
 
-  // Stub: replace with real HTTP call to your CAPTCHA provider
-  // Example for hCaptcha:
-  // const resp = await fetch('https://hcaptcha.com/siteverify', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-  //   body: `secret=${encodeURIComponent(secret)}&response=${encodeURIComponent(token)}&remoteip=${encodeURIComponent(_remoteIp)}`,
-  // });
-  // const json = await resp.json();
-  // return json.success === true;
-
+  // Stub: replace with real HTTP call to your CAPTCHA provider once a
+  // provider is chosen (hCaptcha, reCAPTCHA, Turnstile, etc.).
   return typeof token === 'string' && token.length > 0;
 }
 
