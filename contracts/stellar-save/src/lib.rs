@@ -373,6 +373,9 @@ impl StellarSaveContract {
     /// Only the current admin can perform this update.
     pub fn update_config(env: Env, new_config: ContractConfig) -> Result<(), StellarSaveError> {
         // 1. Validation Logic
+        if new_config.admin == env.current_contract_address() {
+            return Err(StellarSaveError::Unauthorized);
+        }
         if !new_config.validate() {
             return Err(StellarSaveError::InvalidState);
         }
@@ -492,6 +495,19 @@ impl StellarSaveContract {
     ) -> Result<u64, StellarSaveError> {
         // 1. Authorization: Only the creator can initiate this transaction
         creator.require_auth();
+
+        // Reject contract self-address
+        if creator == env.current_contract_address() {
+            return Err(StellarSaveError::Unauthorized);
+        }
+
+        // Early numeric validation guards
+        if contribution_amount <= 0 {
+            return Err(StellarSaveError::InvalidAmount);
+        }
+        if cycle_duration == 0 || max_members < 2 {
+            return Err(StellarSaveError::InvalidState);
+        }
 
         // 1b. Protocol-level cap: max_members must not exceed MAX_MEMBERS (issue #755)
         if max_members > crate::group::MAX_MEMBERS {
@@ -628,6 +644,14 @@ impl StellarSaveContract {
 
         // 2. Task: Verify caller is creator
         group.creator.require_auth();
+
+        // Early numeric guards
+        if new_contribution <= 0 {
+            return Err(StellarSaveError::InvalidAmount);
+        }
+        if new_duration == 0 || new_max_members < 2 {
+            return Err(StellarSaveError::InvalidState);
+        }
 
         // 3. Task: Check group is not yet active
         let status_key = StorageKeyBuilder::group_status(group_id);
@@ -4009,6 +4033,10 @@ impl StellarSaveContract {
         // Verify caller authorization
         member.require_auth();
 
+        if member == env.current_contract_address() {
+            return Err(StellarSaveError::Unauthorized);
+        }
+
         // Task 1: Verify group exists and is joinable
         let group_key = StorageKeyBuilder::group_data(group_id);
         let mut group: Group = env
@@ -4017,9 +4045,6 @@ impl StellarSaveContract {
             .get(&group_key)
             .ok_or(StellarSaveError::GroupNotFound)?;
 
-        // Gas opt: read status from the already-loaded Group struct (0 extra SLOADs).
-        // Previously this did a separate SLOAD via status_key; group.status holds
-        // the same value and was already fetched above.
         if group.status != GroupStatus::Pending {
             return Err(StellarSaveError::InvalidState);
         }
@@ -4755,7 +4780,7 @@ impl StellarSaveContract {
         // Gas opt: compare directly against the already-loaded group struct
         // instead of calling validate_contribution_amount() which would do
         // another SLOAD for the group.
-        if amount != group.contribution_amount {
+        if amount <= 0 || amount != group.contribution_amount {
             return Err(StellarSaveError::InvalidAmount);
         }
 
