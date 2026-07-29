@@ -32,6 +32,12 @@ function applyFilters(groups: PublicGroup[], filters: GroupFilters): PublicGroup
   if (filters.maxAmount !== '') result = result.filter((g) => g.contributionAmount <= Number(filters.maxAmount));
   if (filters.minMembers !== '') result = result.filter((g) => g.memberCount >= Number(filters.minMembers));
   if (filters.maxMembers !== '') result = result.filter((g) => g.memberCount <= Number(filters.maxMembers));
+  if (filters.minCycleDuration !== '') {
+    result = result.filter((g) => g.cycleDuration !== undefined && g.cycleDuration >= Number(filters.minCycleDuration));
+  }
+  if (filters.maxCycleDuration !== '') {
+    result = result.filter((g) => g.cycleDuration !== undefined && g.cycleDuration <= Number(filters.maxCycleDuration));
+  }
 
   return result;
 }
