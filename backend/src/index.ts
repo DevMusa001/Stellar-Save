@@ -67,6 +67,13 @@ const CSP_POLICY = [
   "report-uri /api/csp-report",
 ].join('; ');
 
+// ── Global middleware chain (order matters) ──────────────────────────────────
+// 1. cors            — must run before any response is written
+// 2. express.json     — parse bodies before anything reads req.body
+// 3. compression      — compress responses after body parsing
+// 4. requestLogger    — log requests as they arrive
+// 5. metricsMiddleware — record request metrics
+// 6. auditMiddleware  — tamper-evident audit log for state-changing operations
 const app = express();
 app.use(cors());
 app.use(express.json());
