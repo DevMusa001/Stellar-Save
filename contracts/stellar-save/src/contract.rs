@@ -817,8 +817,9 @@ impl StellarSaveContract {
             return Ok(false);
         }
 
-        // 3. Get pool information for current cycle
-        let pool_info = PoolCalculator::get_pool_info(&env, group_id, group.current_cycle)?;
+        // 3. Get pool information for current cycle (reuse already-loaded group,
+        // avoiding a redundant SLOAD of the group_data entry)
+        let pool_info = PoolCalculator::get_pool_info_for_group(&env, &group, group.current_cycle)?;
 
         // 4. Check if cycle is complete (all members contributed)
         if !pool_info.is_cycle_complete {
