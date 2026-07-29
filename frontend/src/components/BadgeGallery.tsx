@@ -162,7 +162,7 @@ export function BadgeGallery({
       {isLoading && <BadgeSkeletons count={6} />}
 
       {!isLoading && error && (
-        <p role="alert" style={{ color: '#d32f2f', fontSize: '0.85rem', margin: 0 }}>
+        <p role="alert" style={{ color: 'var(--color-danger)', fontSize: '0.85rem', margin: 0 }}>
           {error}
         </p>
       )}

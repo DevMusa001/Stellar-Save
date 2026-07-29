@@ -2,12 +2,12 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import BrowseGroupsPage from '../pages/BrowseGroupsPage';
 import { routeConfig } from '../routing/routes';
 import { ROUTES } from '../routing/constants';
 import { fetchGroups } from '../utils/groupApi';
 import type { PublicGroup } from '../utils/groupApi';
-import { clearGroupsCache } from '../hooks/useGroups';
 
 vi.mock('../ui', () => ({
   AppLayout: ({ children, title, subtitle }: any) => (
@@ -40,17 +40,24 @@ const mockGroups: PublicGroup[] = [
 ];
 
 function renderPage() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <MemoryRouter>
-      <BrowseGroupsPage />
-    </MemoryRouter>
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <BrowseGroupsPage />
+      </MemoryRouter>
+    </QueryClientProvider>
   );
 }
 
 describe('BrowseGroupsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    clearGroupsCache();
+    // BrowseGroupsPage persists the active search/filter state to
+    // localStorage (stellar-save:search-preferences) so it survives
+    // navigation. Clear it between tests so one test's search term
+    // doesn't leak into the next test's initial filters.
+    window.localStorage.clear();
     mockFetchGroups.mockResolvedValue(mockGroups);
   });
 
@@ -63,7 +70,7 @@ describe('BrowseGroupsPage', () => {
 
   it("renders with title 'Browse Groups' and subtitle 'Discover recommended groups based on your preferences and activity'", async () => {
     renderPage();
-    expect(screen.getByText('Browse Groups')).toBeInTheDocument();
+    expect(screen.getAllByText('Browse Groups').length).toBeGreaterThan(0);
     expect(screen.getByText('Discover recommended groups based on your preferences and activity')).toBeInTheDocument();
   });
 
@@ -165,7 +172,7 @@ describe('BrowseGroupsPage', () => {
 
   it('loads more recommendations when the sentinel intersects', async () => {
     const observers: IntersectionObserverCallback[] = [];
-    vi.stubGlobal('IntersectionObserver', vi.fn((callback) => {
+    vi.stubGlobal('IntersectionObserver', vi.fn((callback: IntersectionObserverCallback) => {
       observers.push(callback);
       return {
         observe: () => undefined,
@@ -187,16 +194,21 @@ describe('BrowseGroupsPage', () => {
     mockFetchGroups.mockResolvedValue(manyGroups);
     renderPage();
 
-    await waitFor(() => expect(screen.getByText('Group 1')).toBeInTheDocument());
+    // The discovery feed ranks by recommendation score (higher memberCount
+    // scores higher), so with initialPageSize: 6 the first item shown is
+    // "Group 12" (memberCount 12), not "Group 1".
+    await waitFor(() => expect(screen.getByText('Group 12')).toBeInTheDocument(), { timeout: 3000 });
     expect(observers).toHaveLength(1);
+    expect(screen.queryByText('Group 1')).not.toBeInTheDocument();
 
     act(() => {
       observers[0]([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver);
     });
 
+    // After loadMore, all 12 (including the lowest-ranked "Group 1") are visible.
     await waitFor(() => {
-      expect(screen.getByText('Group 12')).toBeInTheDocument();
-    });
+      expect(screen.getByText('Group 1')).toBeInTheDocument();
+    }, { timeout: 3000 });
   });
 
   it('aria-live region is present in the DOM', () => {

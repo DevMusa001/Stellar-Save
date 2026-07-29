@@ -2,7 +2,7 @@ import { lazy, Suspense } from "react";
 import { Box } from "@mui/material";
 import { useDeepLink } from "./hooks/useDeepLink";
 import "./App.css";
-import { useOfflineSyncInit } from "./hooks/useOfflineSync";
+import { useOfflineSyncInit } from "./hooks/offline";
 import { CardSkeleton } from "./components/Skeleton";
 
 const AppRouter = lazy(() =>

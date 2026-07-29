@@ -1,5 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
 import { useDiscoveryFeed } from '../hooks/useDiscoveryFeed';
 import * as groupApi from '../utils/groupApi';
 import type { PublicGroup } from '../types/group';
@@ -37,6 +39,16 @@ const mockGroups: PublicGroup[] = [
   },
 ];
 
+// Each test gets a fresh QueryClient so no group-list cache bleeds
+// between tests (matching useGroups.test.tsx's pattern for the same hook
+// family, since both now share the queryKeys.groups cache).
+function wrapper() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
@@ -47,7 +59,7 @@ beforeEach(() => {
 
 describe('useDiscoveryFeed', () => {
   it('loads recommendations and exposes visible groups', async () => {
-    const { result } = renderHook(() => useDiscoveryFeed({ initialPageSize: 2 }));
+    const { result } = renderHook(() => useDiscoveryFeed({ initialPageSize: 2 }), { wrapper: wrapper() });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -57,7 +69,7 @@ describe('useDiscoveryFeed', () => {
   });
 
   it('filters recommendations by search query', async () => {
-    const { result } = renderHook(() => useDiscoveryFeed());
+    const { result } = renderHook(() => useDiscoveryFeed(), { wrapper: wrapper() });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -70,7 +82,7 @@ describe('useDiscoveryFeed', () => {
   });
 
   it('loads more recommendations when loadMore is called', async () => {
-    const { result } = renderHook(() => useDiscoveryFeed({ initialPageSize: 1 }));
+    const { result } = renderHook(() => useDiscoveryFeed({ initialPageSize: 1 }), { wrapper: wrapper() });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -87,7 +99,7 @@ describe('useDiscoveryFeed', () => {
 
   it('refresh re-fetches group data', async () => {
     const fetchSpy = vi.spyOn(groupApi, 'fetchGroups');
-    const { result } = renderHook(() => useDiscoveryFeed());
+    const { result } = renderHook(() => useDiscoveryFeed(), { wrapper: wrapper() });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(fetchSpy).toHaveBeenCalledTimes(1);
@@ -96,7 +108,27 @@ describe('useDiscoveryFeed', () => {
       result.current.refresh();
     });
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
+  });
+
+  it('shares its cache entry (queryKeys.groups.all) with other mounts on the same QueryClient', async () => {
+    const fetchSpy = vi.spyOn(groupApi, 'fetchGroups').mockResolvedValue(mockGroups);
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const sharedWrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+
+    const { result: first } = renderHook(() => useDiscoveryFeed(), { wrapper: sharedWrapper });
+    await waitFor(() => expect(first.current.isLoading).toBe(false));
+
+    const { result: second } = renderHook(() => useDiscoveryFeed({ initialPageSize: 2 }), {
+      wrapper: sharedWrapper,
+    });
+    await waitFor(() => expect(second.current.isLoading).toBe(false));
+
+    // A second consumer on the same QueryClient reuses the cached group
+    // list instead of triggering its own network fetch.
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(second.current.totalCount).toBe(3);
   });
 });

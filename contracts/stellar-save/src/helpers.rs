@@ -35,7 +35,8 @@ pub fn validate_group_string(s: &String, max_bytes: u32) -> Result<(), StellarSa
 
 /// Rounding precision for contribution amounts (0.01 XLM = 10^5 stroops).
 /// This prevents precision issues with very small amounts.
-pub const ROUNDING_PRECISION: i128 = 100_000; // 10^5 stroops = 0.01 XLM
+/// Canonical definition lives in `crate::constants::CONTRIBUTION_ROUNDING_PRECISION`.
+pub const ROUNDING_PRECISION: i128 = crate::constants::CONTRIBUTION_ROUNDING_PRECISION;
 
 /// Rounds a contribution amount to the nearest 0.01 XLM (or token equivalent).
 ///

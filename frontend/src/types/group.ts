@@ -69,18 +69,9 @@ export interface GroupDetail extends PublicGroup {
   startedAt: Date | null;
 }
 
-// ─── useGroup return type ─────────────────────────────────────────────────────
-
-export interface UseGroupReturn {
-  /** Full group detail, null while loading or on error */
-  group: GroupDetail | null;
-  /** True during the initial fetch or a manual refresh */
-  isLoading: boolean;
-  /** Error message, null when no error */
-  error: string | null;
-  /** Manually re-fetch (busts cache) */
-  refresh: () => void;
-}
+// Note: the `useGroup()` hook's return type (`UseGroupReturn`) lives in
+// `hooks/useGroup.ts` since it wraps `DetailedGroup` (members/contributions/
+// cycles) from `utils/groupApi`, not the lighter-weight `GroupDetail` above.
 
 // ─── Hook return type ─────────────────────────────────────────────────────────
 

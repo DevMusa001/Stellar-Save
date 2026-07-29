@@ -49,7 +49,7 @@ export type {
 } from './useActivityFeed';
 export { useDiscoveryFeed } from './useDiscoveryFeed';
 
-export { useOfflineSyncInit, useSyncStatus, useIsOnline, useQueueAction } from './useOfflineSync';
+export { useOfflineSyncInit, useSyncStatus, useIsOnline, useQueueAction } from './offline';
 
 // Badge system exports
 export { useMemberBadges } from './useMemberBadges';

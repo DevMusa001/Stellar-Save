@@ -432,7 +432,7 @@ impl StellarSaveContract {
 
         // 7. Initialize Group Struct (using rounded amount)
         let current_time = env.ledger().timestamp();
-        let min_members = 2; // Default minimum members
+        let min_members = crate::constants::MIN_MEMBERS_FLOOR; // Default minimum members
         let mut new_group = Group::new(
             &env,
             group_id,
@@ -2715,7 +2715,7 @@ impl StellarSaveContract {
         // Here we go backwards from the cursor to show newest groups first
         let start = if cursor == 0 { current_max_id } else { cursor };
         let mut count = 0;
-        let page_limit = if limit > 50 { 50 } else { limit }; // Safety cap for gas
+        let page_limit = if limit > crate::constants::MAX_GROUPS_PER_PAGE { crate::constants::MAX_GROUPS_PER_PAGE } else { limit }; // Safety cap for gas
 
         for id in (1..=start).rev() {
             if count >= page_limit {
@@ -2853,7 +2853,7 @@ impl StellarSaveContract {
         let current_max_id: u64 = env.storage().persistent().get(&max_id_key).unwrap_or(0);
         let start = if cursor == 0 { current_max_id } else { cursor };
         let mut count = 0;
-        let page_limit = if limit > 50 { 50 } else { limit }; // Safety cap for gas
+        let page_limit = if limit > crate::constants::MAX_GROUPS_PER_PAGE { crate::constants::MAX_GROUPS_PER_PAGE } else { limit }; // Safety cap for gas
 
         for id in (1..=start).rev() {
             if count >= page_limit {
@@ -3090,9 +3090,9 @@ impl StellarSaveContract {
             .get::<_, Group>(&group_key)
             .ok_or(StellarSaveError::GroupNotFound)?;
 
-        // 2. Cap limit at 50 for gas optimization
-        let page_limit = if limit > 50 {
-            50
+        // 2. Cap limit at MAX_CONTRIBUTION_HISTORY_PER_PAGE for gas optimization
+        let page_limit = if limit > crate::constants::MAX_CONTRIBUTION_HISTORY_PER_PAGE {
+            crate::constants::MAX_CONTRIBUTION_HISTORY_PER_PAGE
         } else if limit == 0 {
             10
         } else {
@@ -3883,7 +3883,7 @@ impl StellarSaveContract {
             .unwrap_or(group.started_at);
 
         let inactive_duration = current_time.saturating_sub(last_activity_time);
-        let emergency_threshold = group.cycle_duration.saturating_mul(2);
+        let emergency_threshold = group.cycle_duration.saturating_mul(crate::constants::EMERGENCY_WITHDRAW_INACTIVE_CYCLES);
 
         if inactive_duration < emergency_threshold {
             return Err(StellarSaveError::InvalidState);
@@ -4087,7 +4087,7 @@ impl StellarSaveContract {
         }
 
         // 4. Apply pagination (cap limit at 100 for gas safety)
-        let page_limit = cmp::min(limit, 100);
+        let page_limit = cmp::min(limit, crate::constants::MAX_MEMBERS_PER_PAGE);
         let total_members = all_members.len();
 
         // If offset is beyond total members, return empty vector

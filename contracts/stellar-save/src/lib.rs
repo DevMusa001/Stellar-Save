@@ -9,8 +9,10 @@
 //! - `contract`: All `#[contractimpl]` entry-point methods (thin facades to domain modules)
 //! - `group`, `contribution`, `payout`, `storage`, …: Domain modules
 
+pub mod admin_actions_tests;
 pub mod auth;
 pub mod clone;
+pub mod constants;
 pub mod contribution;
 pub mod contract;
 pub mod cycle_advancement;
@@ -50,6 +52,8 @@ pub mod milestones;
 // mod multi_token_tests;
 // mod mutation_tests;
 // mod upgrade_tests;
+pub mod wrapping_audit;
+pub mod zk_tests;
 
 // ── Re-exports ────────────────────────────────────────────────────────────────
 pub use auth::{is_active_member, require_admin, require_creator, require_member};

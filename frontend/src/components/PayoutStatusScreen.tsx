@@ -106,7 +106,7 @@ function UserPositionCard({
                 href={getExplorerTxUrl(entry.txHash)}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ fontSize: '0.8rem', color: '#6366f1', textDecoration: 'none' }}
+                style={{ fontSize: '0.8rem', color: 'var(--color-primary)', textDecoration: 'none' }}
               >
                 View payout transaction →
               </a>
