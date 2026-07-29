@@ -87,6 +87,7 @@ Follow the step-by-step guide in [demo/demo-script.md](demo/demo-script.md).
 
 ## 📖 Documentation
 
+- [Local Development Setup](docs/local-development-setup.md) — clone-to-running-app guide for backend, frontend, contracts, and mobile
 - [User Guide](docs/user-guide.md)
 - [Architecture Overview](docs/architecture.md)
 - [Public API Reference](docs/api/interactive-api-reference.md) — REST API with code examples
