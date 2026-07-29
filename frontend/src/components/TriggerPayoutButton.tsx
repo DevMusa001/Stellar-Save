@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import { Button } from './Button';
 import { useToast } from './Toast/useToast';
+import { useErrorToast } from '../hooks/useErrorToast';
 import { useContract } from '../hooks/useContract';
 import { useTransaction, explorerUrl } from '../hooks/useTransaction';
 
@@ -23,6 +24,7 @@ export function TriggerPayoutButton({ groupId, onSuccess }: TriggerPayoutButtonP
   const { executePayout } = useContract();
   const { state, txHash, error, execute } = useTransaction();
   const { addToast } = useToast();
+  const { showContractError } = useErrorToast();
 
   const isPending = state === 'pending';
 
@@ -40,7 +42,7 @@ export function TriggerPayoutButton({ groupId, onSuccess }: TriggerPayoutButtonP
     addToast({ type: 'success', message: `Payout triggered! TX: ${txHash}`, duration: 5000 });
     onSuccess?.(txHash);
   } else if (state === 'failed' && error) {
-    addToast({ type: 'error', message: error });
+    showContractError(error, { context: 'Payout' });
   }
 
   return (

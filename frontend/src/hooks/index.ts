@@ -26,6 +26,13 @@ export { useUserProfile } from './useUserProfile';
 export { useWallet } from './useWallet';
 export { useNotification } from './useNotification';
 export type { NotificationOptions, NotifyOptions, UseNotificationReturn } from './useNotification';
+export {
+  useErrorToast,
+  extractErrorMessage,
+  inferErrorKind,
+  formatErrorMessage,
+} from './useErrorToast';
+export type { ErrorKind, ShowErrorOptions, UseErrorToastReturn } from './useErrorToast';
 export { useClipboard } from './useClipboard';
 export type { UseClipboardOptions, UseClipboardReturn } from './useClipboard';
 export { useReminderPreferences } from './useReminderPreferences';
