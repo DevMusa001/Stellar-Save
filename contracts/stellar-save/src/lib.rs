@@ -66,4 +66,6 @@ pub use events::EventEmitter;
 pub use events::*;
 pub use group::{Group, GroupStatus};
 pub use payout::PayoutRecord;
+pub use storage::StorageKeyBuilder;
+pub use types::{ContractConfig, MemberProfile};
 
