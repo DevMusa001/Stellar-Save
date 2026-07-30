@@ -9,6 +9,7 @@ Stellar-Save uses [k6](https://k6.io) to verify system performance under high tr
 | `tests/load/api.test.js` | Backend API (`:3000`) | Recommendations, search, preferences, export |
 | `tests/load/frontend.test.js` | Frontend (`:4173`) | Page loads, static asset delivery |
 | `tests/load/contract.test.js` | Backend API (`:3000`) | Many-groups simulation (contribution events, payout exports) |
+| `tests/load/contribution.test.js` | Backend API (`:3000`) | **Contribution journey** — highest-traffic, money-related path: browse groups → read group state → record contribution event → verify event indexed → refresh stats |
 
 ## Running locally
 
@@ -37,6 +38,12 @@ k6 run --env SCENARIO=load tests/load/api.test.js
 
 # Stress test (ramp to 200 VUs)
 k6 run --env SCENARIO=stress tests/load/contract.test.js
+
+# Contribution journey (money path — run this any time you touch contribution-related routes)
+k6 run tests/load/contribution.test.js
+k6 run --env SCENARIO=load   tests/load/contribution.test.js
+k6 run --env SCENARIO=stress tests/load/contribution.test.js
+k6 run --env SCENARIO=spike  tests/load/contribution.test.js
 
 # Against a remote environment
 k6 run --env BASE_URL=https://staging.example.com tests/load/api.test.js
@@ -79,6 +86,33 @@ These are the **target thresholds** enforced by k6. Tests fail if any threshold 
 |---|---|
 | `http_req_failed` | < 5% (stress), < 10% (spike) |
 | `http_req_duration` p95 | < 2 000 ms (stress) |
+
+### Contribution journey (money path)
+
+`tests/load/contribution.test.js` applies tighter SLAs than the generic API tests because this
+path is both the highest-traffic route and directly money-related.
+
+| Metric | Threshold (smoke/load) | Threshold (stress) | Threshold (spike) |
+|---|---|---|---|
+| `contribution_event_post_duration` p95 | < 400 ms | < 1 500 ms | < 2 000 ms |
+| `contribution_event_post_duration` p99 | < 800 ms | — | — |
+| `group_read_duration` p95 | < 300 ms | < 800 ms | — |
+| `group_read_duration` p99 | < 600 ms | — | — |
+| `event_index_query_duration` p95 | < 500 ms | < 2 000 ms | — |
+| `stats_duration` p95 | < 300 ms | — | — |
+| `contribution_error_rate` | < 1% | < 3% | < 5% |
+| `http_req_failed` | < 1% | < 5% | < 10% |
+| `contribution_event_ops` (throughput floor) | > 50 total | — | — |
+
+The five steps of the journey:
+
+1. `GET /api/v1/groups` — browse group list
+2. `GET /api/v1/groups/:id` — read group state before contributing
+3. `POST /api/v1/analytics/events` — record `contribution_made` event (the write path)
+4. `GET /api/v1/events?eventType=ContributionMade` — verify event indexed (25 % of VUs)
+5. `GET /api/v1/stats/groups` — refresh landing stats (50 % of VUs)
+
+Results are written to `tests/load/results/contribution-summary.json` and uploaded as CI artifacts.
 
 ## CI integration
 
