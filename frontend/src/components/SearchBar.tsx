@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import './SearchBar.css';
+import { useDebounce } from '../hooks/useDebounce';
+import { filterSuggestions } from '../utils/searchUtils';
 
 interface SearchBarProps {
   placeholder?: string;
@@ -23,30 +25,23 @@ export function SearchBar({
   const [value, setValue] = useState(defaultValue);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
-  const debounceTimerRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isFirstDebounce = useRef(true);
 
-  const filteredSuggestions =
-    value.trim().length > 0
-      ? suggestions.filter((s) => s.toLowerCase().includes(value.toLowerCase()) && s !== value)
-      : [];
+  const filteredSuggestions = filterSuggestions(suggestions, value);
+
+  const debouncedValue = useDebounce(value, { delay: debounceMs });
 
   useEffect(() => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
+    // Skip the run that fires on mount so onSearch isn't called before the
+    // user has actually changed anything.
+    if (isFirstDebounce.current) {
+      isFirstDebounce.current = false;
+      return;
     }
-
-    debounceTimerRef.current = setTimeout(() => {
-      onSearch(value);
-    }, debounceMs);
-
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, [value, debounceMs, onSearch]);
+    onSearch(debouncedValue);
+  }, [debouncedValue, onSearch]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
