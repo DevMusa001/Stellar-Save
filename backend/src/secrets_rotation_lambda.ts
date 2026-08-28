@@ -1,6 +1,6 @@
 /**
  * AWS Lambda function for automatic secret rotation (Issue #1105)
- * 
+ *
  * This Lambda function is triggered by AWS Secrets Manager during rotation.
  * It handles the 4-step rotation process: createSecret, setSecret, testSecret, finishSecret
  */
@@ -255,11 +255,11 @@ function generateNewSecretValue(secretId: string, currentValue: string): string 
     const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
     let password = '';
     const randomBytes = crypto.randomBytes(length);
-    
+
     for (let i = 0; i < length; i++) {
       password += charset[randomBytes[i] % charset.length];
     }
-    
+
     return password;
   }
 
@@ -309,7 +309,7 @@ async function testSecretValue(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     // Implement secret-specific testing logic
-    
+
     if (secretId.includes('db-password')) {
       // Test database connection with new password
       // const connection = await testDatabaseConnection(value);
@@ -350,8 +350,8 @@ async function sendRotationFailureAlert(
 ): Promise<void> {
   // Implement alerting logic here
   // For example: SNS, CloudWatch, PagerDuty, etc.
-  
-  logger.error('ROTATION FAILURE ALERT', {
+
+  console.error('ROTATION FAILURE ALERT', {
     secretId,
     step,
     error: error instanceof Error ? error.message : 'Unknown error',

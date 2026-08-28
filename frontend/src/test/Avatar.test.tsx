@@ -35,12 +35,12 @@ describe('Avatar', () => {
     const { container } = render(
       <Avatar src="invalid-url.jpg" name="Jane Smith" />
     );
-    
+
     const img = container.querySelector('img');
     if (img) {
       img.dispatchEvent(new Event('error'));
     }
-    
+
     await waitFor(() => {
       expect(screen.getByText('JS')).toBeInTheDocument();
     });

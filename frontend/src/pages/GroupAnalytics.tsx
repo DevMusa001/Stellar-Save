@@ -20,7 +20,7 @@ export default function GroupAnalytics() {
   return (
     <AppLayout title="Group Analytics" subtitle={`Analytics for group: ${groupId}`}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        
+
         {/* Stats Row */}
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
           <Card variant="outlined">

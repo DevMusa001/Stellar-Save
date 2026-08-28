@@ -137,7 +137,7 @@ export class SearchService {
 
   async globalSearch(query: string) {
     if (!this.isConnected) return { groups: [], members: [], transactions: [] };
-    
+
     const [groups, members, transactions] = await Promise.all([
       this.searchGroups(query),
       this.searchMembers(query),
