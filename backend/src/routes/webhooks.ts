@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import * as crypto from 'crypto';
 import { prisma } from '../prisma_client';
 import { fetchWithCorrelationId } from '../lib/http';
+import { logger } from '../logger';
 
 export function createWebhookRouter(): Router {
   const router = Router();
@@ -154,10 +155,10 @@ export async function deliverWebhookEvent(
           signal: AbortSignal.timeout(10000),
         });
         if (!res.ok) {
-          console.error(`Webhook delivery failed for ${webhook.id}: HTTP ${res.status}`);
+          logger.error(`Webhook delivery failed for ${webhook.id}: HTTP ${res.status}`);
         }
       } catch (err: any) {
-        console.error(`Webhook delivery error for ${webhook.id}: ${err.message}`);
+        logger.error(`Webhook delivery error for ${webhook.id}: ${err.message}`);
       }
     })
   );

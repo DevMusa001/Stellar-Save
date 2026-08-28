@@ -1,4 +1,5 @@
 import { set } from './redis';
+import { logger } from './logger';
 
 const warmData = {
   '/api/retirements': [
@@ -9,17 +10,17 @@ const warmData = {
 };
 
 export const startWarmingJob = async () => {
-  console.log('🔥 Starting cache warming job...');
+  logger.info('🔥 Starting cache warming job...');
   
   for (const [endpoint, data] of Object.entries(warmData)) {
     await set(`cache:${endpoint}`, data, 3600);
-    console.log(`Warmed: ${endpoint}`);
+    logger.info(`Warmed: ${endpoint}`);
   }
   
-  console.log('✅ Cache warming completed');
+  logger.info('✅ Cache warming completed');
   
   setInterval(async () => {
-    console.log('🔄 Running scheduled cache warming...');
+    logger.info('🔄 Running scheduled cache warming...');
     for (const [endpoint, data] of Object.entries(warmData)) {
       await set(`cache:${endpoint}`, data, 3600);
     }
