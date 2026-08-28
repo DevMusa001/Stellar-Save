@@ -119,10 +119,12 @@ setEndpointCost('/graphql', 2, 'read');
 app.get('/metrics', metricsHandler);
 app.use(createTieredRateLimiter());
 
-// Stricter rate limiting on auth/admin endpoints: 10 req / 15 min per IP
+// Stricter rate limiting on auth/admin endpoints: 10 req / 15 min per IP (Issue #1507)
+// Prevents brute-force attacks on authentication and admin operations.
 const authRateLimiter = createAuthRateLimiterMiddleware();
 app.use('/api/admin', authRateLimiter);
 app.use('/graphql', authRateLimiter);
+app.use('/api/auth', authRateLimiter);
 
 // ── CSP violation reporting ───────────────────────────────────────────────────
 app.post('/api/csp-report', express.json({ type: ['application/json', 'application/csp-report'] }), (req, res) => {
