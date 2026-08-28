@@ -41,6 +41,16 @@ export type {
 // ── Low-level helpers (kept for backward compatibility) ───────────────────────
 export { server, CONTRACT_ID } from './contractClient';
 
+// ── Stellar Horizon service (wraps @stellar/stellar-sdk Horizon calls) ────────
+export { stellarService, StellarService } from './stellarService';
+export type {
+  AccountBalance,
+  AccountInfo,
+  HorizonPaymentRecord,
+  FetchPaymentsOptions,
+  NetworkName,
+} from './stellarService';
+
 // ── Event service ─────────────────────────────────────────────────────────────
 export type {
   GroupCreatedEvent,
