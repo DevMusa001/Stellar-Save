@@ -47,7 +47,7 @@ export function OfflineIndicator(): JSX.Element | null {
 
   const getTooltipText = () => {
     const parts: string[] = [];
-    
+
     if (connectionStatus === 'offline') {
       parts.push('You are currently offline');
       if (queueCount > 0) {
@@ -90,7 +90,7 @@ export function OfflineIndicator(): JSX.Element | null {
           variant="outlined"
         />
       </Tooltip>
-      
+
       <style>{`
         @keyframes rotate {
           from { transform: rotate(0deg); }
