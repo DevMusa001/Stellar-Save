@@ -125,7 +125,7 @@ function GroupCardUI({
         currentCycle={currentCycle}
         nextPayoutDate={nextPayoutDate}
       />
-      <GroupCardActions onViewDetails={onViewDetails} onJoin={onJoin} />
+      <GroupCardActions onViewDetails={onViewDetails} onJoin={onJoin} groupName={groupName} />
     </>
   );
 
