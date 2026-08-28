@@ -1,8 +1,16 @@
 import { Group, Member, Transaction } from '../models';
 import { RecommendationEngine } from '../recommendation';
 import { mockGroups, mockMembers, mockTransactions, mockInteractions } from '../mock_data';
+import { parseOffsetParams } from '../lib/pagination';
 
 const engine = new RecommendationEngine(mockGroups, mockInteractions);
+
+const paginateResults = (items: any[], limit?: number, offset?: number): any[] => {
+  if (!limit && !offset) return items;
+  const pageParams = { limit: limit ?? 20, offset: offset ?? 0 };
+  const safeOffset = Math.min(pageParams.offset, items.length);
+  return items.slice(safeOffset, safeOffset + pageParams.limit);
+};
 
 // ── Resolvers ─────────────────────────────────────────────────────────────────
 
@@ -10,16 +18,20 @@ export const resolvers = {
   Query: {
     health: () => 'ok',
 
-    groups: () => mockGroups,
+    groups: (_: unknown, { limit, offset }: { limit?: number; offset?: number }) =>
+      paginateResults(mockGroups, limit, offset),
     group:  (_: unknown, { id }: { id: string }) =>
       mockGroups.find(g => g.id === id) ?? null,
 
-    members: () => mockMembers,
+    members: (_: unknown, { limit, offset }: { limit?: number; offset?: number }) =>
+      paginateResults(mockMembers, limit, offset),
     member:  (_: unknown, { id }: { id: string }) =>
       mockMembers.find(m => m.id === id) ?? null,
 
-    transactions: (_: unknown, { groupId }: { groupId?: string }) =>
-      groupId ? mockTransactions.filter(t => t.groupId === groupId) : mockTransactions,
+    transactions: (_: unknown, { groupId, limit, offset }: { groupId?: string; limit?: number; offset?: number }) => {
+      const filtered = groupId ? mockTransactions.filter(t => t.groupId === groupId) : mockTransactions;
+      return paginateResults(filtered, limit, offset);
+    },
     transaction: (_: unknown, { id }: { id: string }) =>
       mockTransactions.find(t => t.id === id) ?? null,
 
@@ -43,7 +55,7 @@ export const resolvers = {
       _: unknown,
       args: { userId: string; minContribution?: number; maxContribution?: number; preferredDuration?: number; tags: string[] }
     ) => {
-      engine.setPreference({ userId: args.userId, tags: args.tags, ...args });
+      engine.setPreference(args);
       return true;
     },
   },

@@ -209,7 +209,7 @@ export class TransactionDecoderService {
   /**
    * Validate transaction for unusual patterns and security issues
    */
-  validateTransaction(transactionXdr: string, expectedOrigin?: string): TransactionValidation {
+  validateTransaction(transactionXdr: string): TransactionValidation {
     const errors: string[] = [];
     const warnings: string[] = [];
     const riskFactors: string[] = [];
