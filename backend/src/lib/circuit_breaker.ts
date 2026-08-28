@@ -7,6 +7,8 @@
  *  - HALF_OPEN: Allows a trial request to check if remote service has recovered.
  */
 
+import { CircuitBreakerOpenError } from './errors';
+
 export interface CircuitBreakerOptions<TResult = any> {
   /** Request timeout in ms (default 5000) */
   timeout?: number;
@@ -26,13 +28,7 @@ export enum CircuitState {
   HALF_OPEN = 'HALF_OPEN',
 }
 
-export class CircuitBreakerOpenError extends Error {
-  readonly code = 'CIRCUIT_OPEN';
-  constructor(message = 'Circuit breaker is OPEN') {
-    super(message);
-    this.name = 'CircuitBreakerOpenError';
-  }
-}
+export { CircuitBreakerOpenError };
 
 export class CircuitBreaker<TArgs extends any[] = any[], TResult = any> {
   private state: CircuitState = CircuitState.CLOSED;
