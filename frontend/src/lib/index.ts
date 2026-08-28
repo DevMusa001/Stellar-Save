@@ -52,3 +52,6 @@ export type {
   EventFilter,
 } from '../types/events';
 export { EventService, eventService } from './EventService';
+
+// ── Shared validation utilities ───────────────────────────────────────────────
+export * as validation from './validation';
