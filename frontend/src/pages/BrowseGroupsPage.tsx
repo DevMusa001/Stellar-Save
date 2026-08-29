@@ -12,7 +12,6 @@ import { Button } from '../components/Button';
 import { GroupCardSkeleton } from '../components/Skeleton/GroupCardSkeleton';
 import { EmptyState } from '../components/EmptyState/EmptyState';
 import { ErrorState } from '../components/ErrorState';
-import { ErrorState } from '../components/ErrorState';
 import { useDiscoveryFeed } from '../hooks/useDiscoveryFeed';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ROUTES } from '../routing/constants';

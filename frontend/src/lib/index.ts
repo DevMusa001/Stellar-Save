@@ -65,3 +65,6 @@ export { EventService, eventService } from './EventService';
 
 // ── Shared validation utilities ───────────────────────────────────────────────
 export * as validation from './validation';
+
+// ── Group filtering predicates ────────────────────────────────────────────────
+export * from './filters';
