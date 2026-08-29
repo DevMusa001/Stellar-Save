@@ -1,3 +1,5 @@
+export { DataTable } from "./DataTable/DataTable";
+export type { DataTableColumn, DataTableProps, SortDirection } from "./DataTable/DataTable";
 export { Avatar } from "./Avatar";
 export { BalanceDisplay } from "./BalanceDisplay";
 export type { BalanceDisplayProps } from "./BalanceDisplay";

@@ -165,6 +165,9 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
+      '@graphql-inspector/core':
+        specifier: 6.4.0
+        version: 6.4.0(graphql@16.14.2)
       '@types/graphql-depth-limit':
         specifier: ^1.1.5
         version: 1.1.6
@@ -2212,6 +2215,12 @@ packages:
   '@google-cloud/storage@5.20.5':
     resolution: {integrity: sha512-lOs/dCyveVF8TkVFnFSF7IGd0CJrTm91qiK6JLu+Z8qiT+7Ag0RyVhxZIWkhiACqwABo7kSHDm8FdH8p2wxSSw==}
     engines: {node: '>=10'}
+
+  '@graphql-inspector/core@6.4.0':
+    resolution: {integrity: sha512-vfB05W/lLyc8SjgYizxWWMVu4NCGBxKh2cwIT/2vA3Jxiy3jjiQDVMQ4Bf92gvYAHytgEhFxoMSeaXvZQ7gf0g==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      graphql: ^14.0.0 || ^15.0.0 || ^16.0.0
 
   '@graphql-tools/merge@8.4.2':
     resolution: {integrity: sha512-XbrHAaj8yDuINph+sAfuq3QCZ/tKblrTLOpirK0+CAgNlZUCHs0Fa+xtMUURgwCVThLle1AF7svJCxFizygLsw==}
@@ -6804,6 +6813,10 @@ packages:
     resolution: {integrity: sha512-g7nH6P6dyDioJogAAGprGpCtVImJhpPk/roCzdb3fIh61/s/nPsfR6onyMwkCAR/OlC3yBC0lESvUoQEAssIrw==}
     engines: {node: '>= 0.8'}
 
+  dependency-graph@1.0.0:
+    resolution: {integrity: sha512-cW3gggJ28HZ/LExwxP2B++aiKxhJXMSIt9K48FOXQkm+vuG5gyatXnLsONRJdzO/7VfjDIiaOOa/bs4l464Lwg==}
+    engines: {node: '>=4'}
+
   dequal@2.0.3:
     resolution: {integrity: sha512-0je+qPKHEMohvfRTCEo3CrPG6cAzAYgmzKyxRiYSSDkS6eGJdyVJm7WaYA5ECaAD9wLB2T4EEeymA5aFVcYXCA==}
     engines: {node: '>=6'}
@@ -9688,6 +9701,10 @@ packages:
   object-hash@3.0.0:
     resolution: {integrity: sha512-RSn9F68PjH9HqtltsSnqYC1XXoWe9Bju5+213R98cNGttag9q9yAOTzdbsqvIa7aNm5WffBZFpWYr2aWrklWAw==}
     engines: {node: '>= 6'}
+
+  object-inspect@1.13.2:
+    resolution: {integrity: sha512-IRZSRuzJiynemAXPYtPe5BoI/RESNYR7TYm50MC5Mqbd3Jmw5y790sErYw3V6SryFJD64b74qQQs9wn5Bg/k3g==}
+    engines: {node: '>= 0.4'}
 
   object-inspect@1.13.4:
     resolution: {integrity: sha512-W67iLl4J2EXEGTbfeHCffrjDfitvLANg0UlX3wFUUSTx92KXRFegMHUVgSqE+wvhAbi4WqjGg9czysTV2Epbew==}
@@ -14953,6 +14970,13 @@ snapshots:
       - encoding
       - supports-color
     optional: true
+
+  '@graphql-inspector/core@6.4.0(graphql@16.14.2)':
+    dependencies:
+      dependency-graph: 1.0.0
+      graphql: 16.14.2
+      object-inspect: 1.13.2
+      tslib: 2.6.2
 
   '@graphql-tools/merge@8.4.2(graphql@16.14.2)':
     dependencies:
@@ -21436,6 +21460,8 @@ snapshots:
 
   depd@2.0.0: {}
 
+  dependency-graph@1.0.0: {}
+
   dequal@2.0.3: {}
 
   des.js@1.1.0:
@@ -24987,6 +25013,8 @@ snapshots:
 
   object-hash@3.0.0: {}
 
+  object-inspect@1.13.2: {}
+
   object-inspect@1.13.4: {}
 
   object-keys@1.1.1: {}
@@ -25697,7 +25725,7 @@ snapshots:
       devtools-protocol: 0.0.869402
       extract-zip: 2.0.1
       https-proxy-agent: 5.0.1
-      node-fetch: 2.6.13
+      node-fetch: 2.7.0
       pkg-dir: 4.2.0
       progress: 2.0.3
       proxy-from-env: 1.1.0
