@@ -18,12 +18,24 @@ export interface CircuitBreakerOptions<TResult = any> {
   volumeThreshold?: number;
   /** Optional fallback handler invoked on error or open circuit */
   fallback?: (error: Error, ...args: any[]) => TResult | Promise<TResult>;
+  /** Identifier used when reporting state changes (default 'circuit') */
+  name?: string;
+  /** Invoked whenever the circuit moves between states */
+  onStateChange?: (name: string, from: CircuitState, to: CircuitState) => void;
 }
 
 export enum CircuitState {
   CLOSED = 'CLOSED',
   OPEN = 'OPEN',
   HALF_OPEN = 'HALF_OPEN',
+}
+
+export interface CircuitBreakerStats {
+  name: string;
+  state: CircuitState;
+  failureCount: number;
+  successCount: number;
+  totalCount: number;
 }
 
 export class CircuitBreakerOpenError extends Error {
@@ -46,6 +58,8 @@ export class CircuitBreaker<TArgs extends any[] = any[], TResult = any> {
   private readonly resetTimeout: number;
   private readonly volumeThreshold: number;
   private readonly fallback?: (error: Error, ...args: TArgs) => TResult | Promise<TResult>;
+  private readonly name: string;
+  private readonly onStateChange?: (name: string, from: CircuitState, to: CircuitState) => void;
 
   constructor(
     private readonly fn: (...args: TArgs) => Promise<TResult>,
@@ -56,11 +70,31 @@ export class CircuitBreaker<TArgs extends any[] = any[], TResult = any> {
     this.resetTimeout = options.resetTimeout ?? 10000;
     this.volumeThreshold = options.volumeThreshold ?? 3;
     this.fallback = options.fallback;
+    this.name = options.name ?? 'circuit';
+    this.onStateChange = options.onStateChange;
+  }
+
+  /** Move to `next`, notifying the state-change hook only on a real transition. */
+  private transition(next: CircuitState): void {
+    if (this.state === next) return;
+    const previous = this.state;
+    this.state = next;
+    this.onStateChange?.(this.name, previous, next);
+  }
+
+  public getStats(): CircuitBreakerStats {
+    return {
+      name: this.name,
+      state: this.getState(),
+      failureCount: this.failureCount,
+      successCount: this.successCount,
+      totalCount: this.totalCount,
+    };
   }
 
   public getState(): CircuitState {
     if (this.state === CircuitState.OPEN && Date.now() >= this.nextAttempt) {
-      this.state = CircuitState.HALF_OPEN;
+      this.transition(CircuitState.HALF_OPEN);
     }
     return this.state;
   }
@@ -123,12 +157,12 @@ export class CircuitBreaker<TArgs extends any[] = any[], TResult = any> {
   }
 
   private trip(): void {
-    this.state = CircuitState.OPEN;
+    this.transition(CircuitState.OPEN);
     this.nextAttempt = Date.now() + this.resetTimeout;
   }
 
   public reset(): void {
-    this.state = CircuitState.CLOSED;
+    this.transition(CircuitState.CLOSED);
     this.failureCount = 0;
     this.successCount = 0;
     this.totalCount = 0;
