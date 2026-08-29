@@ -64,6 +64,7 @@
   },
   "devDependencies": {
     "@graphql-inspector/core": "6.4.0",
+    "@types/express": "4.17.25",
     "@types/graphql-depth-limit": "^1.1.5",
     "@types/ioredis": "^4.28.10",
     "@types/jest": "^30.0.0",
