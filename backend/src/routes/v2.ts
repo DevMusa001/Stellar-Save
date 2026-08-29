@@ -7,6 +7,8 @@ import { prisma } from '../prisma_client';
 import { logger } from '../logger';
 import { config } from '../config';
 import { readinessCheckCache } from '../redis';
+import { ValidationMiddleware } from '../middleware/validation';
+import { groupInvitationSchema } from '../middleware/validation.schemas';
 
 /**
  * Transforms a v1 response shape into v2 shape.
@@ -65,14 +67,12 @@ export function createV2Router(services: V1Services): Router {
 
   // Group invitation email
   // POST /api/groups/:groupId/invite
-  router.post('/groups/:groupId/invite', async (req: Request, res: Response) => {
-    try {
-      const { groupId } = req.params;
-      const { email } = req.body as { email?: string };
-
-      if (!groupId) return res.status(400).json(migrateV1ToV2({ error: 'groupId is required' }));
-      if (!email || typeof email !== 'string')
-        return res.status(400).json(migrateV1ToV2({ error: 'email is required' }));
+  router.post(
+    '/groups/:groupId/invite',
+    ValidationMiddleware.validateBody(groupInvitationSchema),
+    async (req: Request, res: Response) => {
+      try {
+        const { groupId, email } = req.body;
 
       // Generate token for join link
       const joinToken = randomBytes(32).toString('hex');
