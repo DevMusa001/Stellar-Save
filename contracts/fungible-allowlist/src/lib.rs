@@ -3,6 +3,8 @@
 
 mod contract;
 
+pub use contract::{require_admin, require_allowlisted, ExampleContract};
+
 #[cfg(test)]
 mod test;
 #[cfg(test)]
