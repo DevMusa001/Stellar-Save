@@ -62,8 +62,3 @@ export function usePrefetchGroup() {
     });
   };
 }
-
-// Keep backward-compat export for tests
-export function clearGroupCache() {
-  // no-op — React Query manages its own cache
-}

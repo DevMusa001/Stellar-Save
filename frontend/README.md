@@ -59,6 +59,33 @@ The frontend uses Material-UI with a centralized theme and wrapper layer:
 - **App Layout**: `src/ui/layout/AppLayout.tsx`
 - **Detailed UI Guide**: Refer to [docs/ui-component-library.md](../docs/ui-component-library.md)
 
+## State Management
+
+React Query is the single source of truth for server state. There is no Redux
+store in this app: `@reduxjs/toolkit`, `redux` and `redux-thunk` appear in
+`package-lock.json` only as transitive dependencies of `recharts`, are not
+listed in `package.json`, and no slice, reducer or `configureStore` call exists
+anywhere in `src/`. Nothing to remove, and the dependency cannot be dropped
+without dropping charting.
+
+Conventions:
+
+- Server data goes through a `useQuery` keyed off `src/lib/queryKeys.ts`, with
+  the staleness window taken from `STALE_TIME` in `src/lib/queryClient.ts`.
+- Writes go through a `useMutation` that invalidates the affected key family.
+  See `src/hooks/useGroupMutations.ts`.
+- Offline fallback is a composable, not query-hook logic. See
+  `src/hooks/useOfflineGroupsCache.ts`.
+- UI-only state (filters, pagination, form fields) stays in local `useState`.
+
+Two hooks predate this and still keep hand-rolled module-level `Map` caches
+with `useState`/`useEffect` fetching: `src/hooks/useMembers.ts` and
+`src/hooks/useLeaderboard.ts`. They are a second, competing cache paradigm and
+should migrate to React Query, but they are load-bearing and out of scope for
+the boilerplate cleanup. Their `clearMembersCache` / `clearLeaderboardCache`
+exports are real cache resets and must stay until the migration lands. Do not
+copy this pattern into new hooks.
+
 ## Wallet Integration
 
 Stellar wallet connection adapters and providers are defined in:

@@ -63,6 +63,36 @@ When intentional UI changes are made:
 3. Click **Approve** for expected changes.
 4. The PR check turns green and the new screenshots become the baseline.
 
+## Member badge gallery baseline
+
+The member badge gallery is covered by three snapshot pairs (light + dark):
+
+| Snapshot | Route | Spec |
+|---|---|---|
+| `Member badge gallery - directory` | `/groups/1/members` | `visual.spec.ts` |
+| `Member badge gallery - profile badges` | `/members/:address` | `visual.spec.ts` |
+| `Mobile: Member badge gallery - directory` | `/groups/1/members` | `mobile.spec.ts` |
+
+Both routes render from fixture data, so the snapshots are deterministic across
+runs. `freezeAnimations()` is applied before every capture because badge chips
+animate on mount.
+
+### Updating the badge gallery baseline
+
+Follow this when a badge style change is intentional:
+
+1. Push the branch and wait for the Percy check to report **needs review**.
+2. Open the Percy build and confirm every diff is limited to the badge surfaces
+   you touched. Diffs on unrelated snapshots mean the change leaked into shared
+   theme tokens and should be narrowed first.
+3. Check both the light and dark variant of each pair. Approving only one leaves
+   the other pair member as a stale baseline.
+4. Click **Approve** on the build. The approved screenshots become the new
+   baseline for `main`.
+5. If a diff appears without any intended change, re-run
+   `npm run test:visual` twice before approving; a diff that does not reproduce
+   is flake, not drift, and should be reported rather than approved.
+
 ## Mobile visual regression
 
 Mobile baselines are captured in `frontend/src/test/visual/mobile.spec.ts`.

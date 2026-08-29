@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Box } from '@mui/material';
 import { Skeleton } from '../components/Skeleton/Skeleton';
-import { RouteErrorBoundary } from '../components/RouteErrorBoundary';
+import { RouteBoundary } from './RouteBoundary';
 import { routeConfig } from './routes';
 import { ProtectedRoute } from './ProtectedRoute';
 import { AdminRoute } from './AdminRoute';
@@ -37,25 +37,25 @@ export function AppRouter() {
           let element: JSX.Element;
           if (route.adminOnly) {
             element = (
-              <RouteErrorBoundary>
+              <RouteBoundary>
                 <AdminRoute>
                   <Component />
                 </AdminRoute>
-              </RouteErrorBoundary>
+              </RouteBoundary>
             );
           } else if (route.protected) {
             element = (
-              <RouteErrorBoundary>
+              <RouteBoundary>
                 <ProtectedRoute>
                   <Component />
                 </ProtectedRoute>
-              </RouteErrorBoundary>
+              </RouteBoundary>
             );
           } else {
             element = (
-              <RouteErrorBoundary>
+              <RouteBoundary>
                 <Component />
-              </RouteErrorBoundary>
+              </RouteBoundary>
             );
           }
 

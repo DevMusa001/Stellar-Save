@@ -16,6 +16,24 @@ use stellar_tokens::fungible::{
     Base, FungibleToken,
 };
 
+/// Reusable helper guard that requires caller authentication and verifies
+/// that the caller is the contract admin or has the manager role.
+pub fn require_admin(e: &Env, operator: &Address) {
+    operator.require_auth();
+    if let Some(admin) = access_control::get_admin(e) {
+        if &admin != operator && !access_control::has_role(e, operator, &symbol_short!("manager")) {
+            panic!("unauthorized caller: required admin or manager role");
+        }
+    }
+}
+
+/// Reusable helper guard that checks whether an account is allowlisted.
+pub fn require_allowlisted(e: &Env, account: &Address) {
+    if !AllowList::allowed(e, account) {
+        panic!("unauthorized: account is not allowlisted");
+    }
+}
+
 #[contract]
 pub struct ExampleContract;
 
@@ -42,6 +60,16 @@ impl ExampleContract {
         // Mint initial supply to the admin
         Base::mint(e, &admin, initial_supply);
     }
+
+    /// Access-control helper: require admin or manager authorization
+    pub fn require_admin(e: &Env, operator: &Address) {
+        require_admin(e, operator);
+    }
+
+    /// Allowlist helper: require account to be allowlisted
+    pub fn require_allowlisted(e: &Env, account: &Address) {
+        require_allowlisted(e, account);
+    }
 }
 
 #[contractimpl(contracttrait)]
@@ -56,12 +84,14 @@ impl FungibleAllowList for ExampleContract {
 
     #[only_role(operator, "manager")]
     fn allow_user(e: &Env, user: Address, operator: Address) {
-        AllowList::allow_user(e, &user)
+        require_admin(e, &operator);
+        AllowList::allow_user(e, &user);
     }
 
     #[only_role(operator, "manager")]
     fn disallow_user(e: &Env, user: Address, operator: Address) {
-        AllowList::disallow_user(e, &user)
+        require_admin(e, &operator);
+        AllowList::disallow_user(e, &user);
     }
 }
 

@@ -269,6 +269,8 @@ impl StellarSaveContract {
             
             // Initialize storage version on first deployment
             initialize_storage_version(&env);
+            // Initialize contract binary version on first deployment (Issue #72)
+            migration::initialize_contract_version(&env);
         }
 
         // 3. Perform migration if needed
@@ -311,6 +313,51 @@ impl StellarSaveContract {
     /// This can be used to check if migration is needed.
     pub fn get_storage_version(env: Env) -> u32 {
         migration::get_storage_version(&env)
+    }
+
+    /// Returns the on-chain contract binary version.
+    ///
+    /// This is the monotonically increasing version number that the upgrade
+    /// guard tracks to prevent downgrade or double-upgrade (Issue #72).
+    pub fn get_contract_version(env: Env) -> u32 {
+        migration::get_contract_version(&env)
+    }
+
+    /// Upgrades the contract Wasm to a new binary, enforcing the version guard.
+    ///
+    /// Only the contract admin may call this.  `new_version` must be strictly
+    /// greater than the current on-chain contract version, which prevents
+    /// accidental downgrade or double-upgrade (Issue #72).
+    ///
+    /// # Arguments
+    /// * `caller`      – Must be the contract admin
+    /// * `new_wasm`    – 32-byte Wasm hash of the replacement binary
+    /// * `new_version` – New version number (must be > current on-chain version)
+    ///
+    /// # Returns
+    /// * `Ok(())` – Upgrade applied, version persisted, event emitted
+    /// * `Err(StellarSaveError::Unauthorized)` – Caller is not the admin
+    /// * `Err(StellarSaveError::InvalidState)` – Version guard rejected the upgrade
+    pub fn upgrade_contract(
+        env: Env,
+        caller: Address,
+        new_wasm: BytesN<32>,
+        new_version: u32,
+    ) -> Result<(), StellarSaveError> {
+        caller.require_auth();
+
+        // Verify admin
+        let config_key = StorageKeyBuilder::contract_config();
+        let config = env
+            .storage()
+            .persistent()
+            .get::<_, ContractConfig>(&config_key)
+            .ok_or(StellarSaveError::Unauthorized)?;
+        if config.admin != caller {
+            return Err(StellarSaveError::Unauthorized);
+        }
+
+        migration::execute_upgrade(&env, caller, new_wasm, new_version)
     }
 
     /// Updates the global contribution amount limits.
@@ -1936,11 +1983,16 @@ impl StellarSaveContract {
             .persistent()
             .get(&count_key)
             .unwrap_or(0u32)
-            + 1;
+            .checked_add(1)
+            .ok_or(StellarSaveError::Overflow)?;
         env.storage().persistent().set(&count_key, &vote_count);
 
-        // Auto-pause when >50% of members have raised a dispute
-        let threshold = group.member_count / 2 + 1;
+        // Auto-pause when >50% of members have raised a dispute.
+        // Use checked arithmetic on both halving and the +1 to guard against
+        // a theoretically saturated member_count (invariant #13).
+        let threshold = (group.member_count / 2)
+            .checked_add(1)
+            .ok_or(StellarSaveError::Overflow)?;
         let auto_paused = vote_count >= threshold;
         if auto_paused {
             group.dispute_active = true;
@@ -3711,7 +3763,10 @@ impl StellarSaveContract {
         env.storage().persistent().set(&pos_idx_key, &member);
 
         // Update group member count
-        group.member_count += 1;
+        group.member_count = group
+            .member_count
+            .checked_add(1)
+            .ok_or(StellarSaveError::Overflow)?;
         env.storage().persistent().set(&group_key, &group);
 
         // Referral tracking: store mapping and emit event if referrer provided
@@ -3804,7 +3859,10 @@ impl StellarSaveContract {
         env.storage().persistent().set(&members_key, &members);
 
         // Update group member count
-        group.member_count -= 1;
+        group.member_count = group
+            .member_count
+            .checked_sub(1)
+            .ok_or(StellarSaveError::Overflow)?;
         env.storage().persistent().set(&group_key, &group);
 
         let timestamp = env.ledger().timestamp();

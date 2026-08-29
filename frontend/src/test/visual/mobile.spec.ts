@@ -132,6 +132,17 @@ test('Mobile: Bottom navigation bar visible', async ({ page }) => {
   await snapshotBothModes(page, 'Mobile: Bottom navigation bar');
 });
 
+// === Member badge gallery
+
+test('Mobile: Member badge gallery - directory', async ({ page }) => {
+  await page.goto('/');
+  await mockWalletConnected(page);
+  await page.goto('/groups/1/members');
+  await freezeAnimations(page);
+  await page.waitForLoadState('networkidle');
+  await snapshotBothModes(page, 'Mobile: Member badge gallery - directory');
+});
+
 // === 404 page
 
 test('Mobile: 404 Not Found page', async ({ page }) => {

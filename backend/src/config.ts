@@ -230,9 +230,15 @@ if (!parsed.success) {
   const issues = parsed.error.issues
     .map((i) => `  • ${i.path.join('.')}: ${i.message}`)
     .join('\n');
-  console.error(
-    `\n[config] ❌ Invalid environment configuration:\n${issues}\n` +
-      `  Check your .env file against .env.example and fix the above variables.\n`,
+  // NOTE: the structured logger depends on this module, so it is not available
+  // yet during config bootstrap — write directly to stderr as JSON instead.
+  process.stderr.write(
+    JSON.stringify({
+      level: 'error',
+      message: 'invalid environment configuration',
+      issues: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
+      hint: 'Check your .env file against .env.example and fix the above variables.',
+    }) + '\n',
   );
   process.exit(1);
 }
@@ -258,9 +264,12 @@ function getDatabaseUrl(): string {
   }
 
   // Fallback for local development
-  console.warn(
-    '[config] ⚠️  Neither DATABASE_URL nor complete DB_* variables provided. ' +
-    'Using default local connection.'
+  process.stderr.write(
+    JSON.stringify({
+      level: 'warn',
+      message:
+        'Neither DATABASE_URL nor complete DB_* variables provided; using default local connection',
+    }) + '\n',
   );
   return 'postgresql://user:pass@localhost:5432/stellar_save';
 }

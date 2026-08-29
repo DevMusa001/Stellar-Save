@@ -5,6 +5,7 @@ import { Pagination } from './Pagination';
 import { Dropdown } from './Dropdown';
 import { EmptyState } from './EmptyState/EmptyState';
 import { GroupSkeleton } from './Skeleton/GroupSkeleton';
+import { applyGroupFilters } from '../lib/filters';
 import './GroupList.css';
 
 export interface Group {
@@ -96,33 +97,12 @@ export function GroupList({
 
   // Filter groups based on search query, currency, and amount range
   const filteredGroups = useMemo(() => {
-    let result = groups;
-
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (group) =>
-          group.name.toLowerCase().includes(query) ||
-          group.description?.toLowerCase().includes(query)
-      );
-    }
-
-    if (currencyFilter.trim()) {
-      const cf = currencyFilter.toLowerCase();
-      result = result.filter((g) => g.currency?.toLowerCase() === cf);
-    }
-
-    if (minAmount !== '') {
-      const min = Number(minAmount);
-      result = result.filter((g) => g.contributionAmount !== undefined && g.contributionAmount >= min);
-    }
-
-    if (maxAmount !== '') {
-      const max = Number(maxAmount);
-      result = result.filter((g) => g.contributionAmount !== undefined && g.contributionAmount <= max);
-    }
-
-    return result;
+    return applyGroupFilters(groups, {
+      searchQuery,
+      currencyFilter,
+      minAmount,
+      maxAmount,
+    });
   }, [groups, searchQuery, currencyFilter, minAmount, maxAmount]);
 
   // Sort filtered groups

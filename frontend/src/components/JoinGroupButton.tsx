@@ -86,7 +86,7 @@ export function JoinGroupButton({
         {state === 'failed' && error && (
           <span style={{ color: 'var(--color-error)', fontSize: 12 }}>
             {error}{' '}
-            <button onClick={reset} style={{ fontSize: 11 }}>Dismiss</button>
+            <button onClick={reset} style={{ fontSize: 11 }} aria-label="Dismiss error">Dismiss</button>
           </span>
         )}
       </div>

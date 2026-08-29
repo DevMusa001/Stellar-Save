@@ -120,6 +120,21 @@ fn reset_and_guess() {
     assert!(client.guess(&10, &alice));
 }
 
+#[test]
+fn test_optimized_storage_and_funds_flow() {
+    let env = &Env::default();
+    let (admin, sac, client) = init_test(env);
+    env.mock_all_auths();
+
+    // Add funds using optimized single-read require_admin path
+    client.add_funds(&xlm::to_stroops(3));
+    assert_eq!(sac.balance(&client.address), xlm::to_stroops(4));
+
+    // Verify admin query is consistent
+    assert_eq!(client.admin(), Some(admin.clone()));
+}
+
+
 fn set_caller<T>(client: &GuessTheNumberClient, fn_name: &str, caller: &Address, args: T)
 where
     T: IntoVal<Env, Vec<Val>>,

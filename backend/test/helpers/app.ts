@@ -21,6 +21,9 @@ import { WebPushService } from '../src/web_push_service';
 import { EmailService } from '../src/email_service';
 import { FeedbackService } from '../src/feedback_service';
 import { createV1Router } from '../src/routes/v1';
+import { createGroupsRouter } from '../src/routes/groups';
+import { GroupsService } from '../src/services/group/groups.service';
+import { InMemoryGroupsRepository } from '../src/services/group/groups.repository';
 import { getMemberReputation } from '../src/reputation_service';
 import { Group, UserInteraction } from '../src/models';
 import { format as fastCsvFormat } from 'fast-csv';
@@ -76,16 +79,11 @@ export function buildApp() {
     feedbackService,
   };
 
-  // /api/groups — mock data (no DB)
-  app.get('/api/groups', (_req, res) => {
-    res.json(mockGroups);
-  });
-
-  app.get('/api/groups/:id', (req, res) => {
-    const group = mockGroups.find((g) => g.id === req.params.id);
-    if (!group) return res.status(404).json({ error: 'Group not found' });
-    res.json(group);
-  });
+  // /api/groups — layered controller + service + repository (no DB)
+  app.use(
+    '/api',
+    createGroupsRouter(new GroupsService(new InMemoryGroupsRepository(mockGroups))),
+  );
 
   // /api/members
   app.get('/api/members/:address/reputation', async (req, res) => {

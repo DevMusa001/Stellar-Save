@@ -11,6 +11,7 @@ import { useToast } from '../components/Toast/useToast';
 import { Button } from '../components/Button';
 import { GroupCardSkeleton } from '../components/Skeleton/GroupCardSkeleton';
 import { EmptyState } from '../components/EmptyState/EmptyState';
+import { ErrorState } from '../components/ErrorState';
 import { useDiscoveryFeed } from '../hooks/useDiscoveryFeed';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ROUTES } from '../routing/constants';
@@ -105,10 +106,7 @@ function BrowseGroupsContent() {
         <Stack spacing={2}>
           <div aria-live="polite" aria-atomic="true">
             {error && (
-              <div className="browse-groups-error" role="alert">
-                <p>{error}</p>
-                <Button onClick={refresh}>Retry</Button>
-              </div>
+              <ErrorState message={error} onRetry={refresh} />
             )}
           </div>
 

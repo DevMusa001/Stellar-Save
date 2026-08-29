@@ -1,3 +1,5 @@
+export { DataTable } from "./DataTable/DataTable";
+export type { DataTableColumn, DataTableProps, SortDirection } from "./DataTable/DataTable";
 export { Avatar } from "./Avatar";
 export { BalanceDisplay } from "./BalanceDisplay";
 export type { BalanceDisplayProps } from "./BalanceDisplay";
@@ -8,6 +10,10 @@ export { Tooltip } from "./Tooltip";
 export { Dropdown } from "./Dropdown";
 export { EmptyState } from "./EmptyState/EmptyState";
 export { ErrorBoundary } from "./ErrorBoundary/ErrorBoundary";
+export { LoadingState } from "./LoadingState/LoadingState";
+export type { LoadingStateProps } from "./LoadingState/LoadingState";
+export { ErrorState } from "./ErrorState/ErrorState";
+export type { ErrorStateProps } from "./ErrorState/ErrorState";
 export { Skeleton } from "./Skeleton/Skeleton";
 export { GroupSkeleton } from "./Skeleton/GroupSkeleton";
 export { GroupCardSkeleton } from "./Skeleton/GroupCardSkeleton";
