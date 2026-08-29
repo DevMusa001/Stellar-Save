@@ -1,6 +1,6 @@
 /**
  * syncService.ts — Handles offline/online sync and queue management
- * 
+ *
  * Manages:
  * - Online/offline detection
  * - Background sync on foreground and interval
@@ -80,10 +80,10 @@ export function stopSyncService(): void {
 async function handleOnline(): Promise<void> {
   await updateSyncMetadata({ isOnline: true });
   notifyConnectionStatus('online');
-  
+
   // Trigger sync immediately
   void syncAll();
-  
+
   // Start periodic sync
   startPeriodicSync();
 }
@@ -91,10 +91,10 @@ async function handleOnline(): Promise<void> {
 async function handleOffline(): Promise<void> {
   await updateSyncMetadata({ isOnline: false });
   notifyConnectionStatus('offline');
-  
+
   // Mark cached data as potentially stale
   await markGroupsAsStale();
-  
+
   // Stop periodic sync
   stopPeriodicSync();
 }
@@ -109,7 +109,7 @@ async function handleVisibilityChange(): Promise<void> {
 
 function startPeriodicSync(): void {
   if (syncIntervalId !== null) return;
-  
+
   syncIntervalId = window.setInterval(() => {
     if (navigator.onLine) {
       void syncAll();
@@ -285,7 +285,7 @@ export async function getCachedGroupWithStatus(
   groupId: string
 ): Promise<{ group: DetailedGroup | null; isStale: boolean; fromCache: boolean }> {
   const cached = await getCachedGroup(groupId);
-  
+
   if (!cached) {
     return { group: null, isStale: false, fromCache: false };
   }
@@ -305,7 +305,7 @@ export async function getCachedGroupsListWithStatus(): Promise<{
   fromCache: boolean;
 }> {
   const cached = await getCachedGroupsList();
-  
+
   if (!cached) {
     return { groups: [], isStale: false, fromCache: false };
   }

@@ -42,6 +42,7 @@ pub mod types;
 
 // mod auto_contribution_tests;
 pub mod gas_benchmark;
+pub mod insurance_integration_tests;
 pub mod test_utils;
 // mod invitation_tests;
 // mod merge_tests;
@@ -65,4 +66,6 @@ pub use events::EventEmitter;
 pub use events::*;
 pub use group::{Group, GroupStatus};
 pub use payout::PayoutRecord;
+pub use storage::StorageKeyBuilder;
+pub use types::{ContractConfig, MemberProfile};
 

@@ -5,10 +5,12 @@ import { fetchGroup } from '../utils/groupApi';
 import type { GroupDetail } from '../types/group';
 import { queryKeys } from '../lib/queryKeys';
 import { STALE_TIME } from '../lib/queryClient';
-import { GroupBadge } from './GroupBadge';
-import { Button } from './Button';
 import { GroupCardSkeleton } from './Skeleton/GroupCardSkeleton';
 import { usePrefetchGroup } from '../hooks/useGroup';
+import { GroupCardHeader } from './GroupCardHeader';
+import { GroupCardStats } from './GroupCardStats';
+import { GroupCardActions } from './GroupCardActions';
+import { formatXlm, computeNextPayout } from '../utils/groupCardUtils';
 
 type Status = 'active' | 'completed' | 'pending' | 'complete';
 
@@ -51,33 +53,6 @@ interface GroupCardFetchProps {
 }
 
 export type GroupCardProps = GroupCardStaticProps | GroupCardFetchProps;
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const STROOPS_PER_XLM = 10_000_000;
-
-function formatXlm(stroops: number): string {
-  return (stroops / STROOPS_PER_XLM).toLocaleString('en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  });
-}
-
-function computeNextPayout(
-  startedAt: Date | null,
-  currentCycle: number,
-  cycleDurationSecs: number,
-): Date | null {
-  if (!startedAt || cycleDurationSecs <= 0) return null;
-  const nextCycleEnd =
-    startedAt.getTime() + (currentCycle + 1) * cycleDurationSecs * 1000;
-  return new Date(nextCycleEnd);
-}
-
-function formatDate(date: Date | null | undefined): string {
-  if (!date) return '—';
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
 
 // ─── Inner UI ─────────────────────────────────────────────────────────────────
 
@@ -138,66 +113,19 @@ function GroupCardUI({
 
   const content = (
     <>
-      {imageUrl && (
-        <div className="group-card-image">
-          <img src={imageUrl} alt={groupName} />
-        </div>
-      )}
-
-      <div className="group-card-header">
-        <h3 className="group-card-title">{groupName}</h3>
-        <GroupBadge status={status} />
-      </div>
-
-      {description && (
-        <div className="group-card-description">
-          <p>{description}</p>
-        </div>
-      )}
-
-      <div className="group-card-body">
-        <div className="group-card-stats">
-          <div className="group-card-stat">
-            <span className="group-card-stat-label">Contribution</span>
-            <span className="group-card-stat-value">{contributionAmount}</span>
-          </div>
-          <div className="group-card-stat">
-            <span className="group-card-stat-label">Members</span>
-            <span className="group-card-stat-value">{memberCount}</span>
-          </div>
-          <div className="group-card-stat">
-            <span className="group-card-stat-label">Cycle</span>
-            <span className="group-card-stat-value">{currentCycle}</span>
-          </div>
-          <div className="group-card-stat">
-            <span className="group-card-stat-label">Next Payout</span>
-            <span className="group-card-stat-value group-card-stat-value--date">
-              {formatDate(nextPayoutDate)}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="group-card-footer">
-        {onViewDetails && (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={(e) => { e.stopPropagation(); onViewDetails(); }}
-          >
-            View Details
-          </Button>
-        )}
-        {onJoin && (
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={(e) => { e.stopPropagation(); onJoin(); }}
-          >
-            Join Group
-          </Button>
-        )}
-      </div>
+      <GroupCardHeader
+        groupName={groupName}
+        status={status}
+        description={description}
+        imageUrl={imageUrl}
+      />
+      <GroupCardStats
+        contributionAmount={contributionAmount}
+        memberCount={memberCount}
+        currentCycle={currentCycle}
+        nextPayoutDate={nextPayoutDate}
+      />
+      <GroupCardActions onViewDetails={onViewDetails} onJoin={onJoin} groupName={groupName} />
     </>
   );
 
